@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { apply, chooseOperation, interval, catchUpGrace, stepRage, starsFor, tolerance } from '../src/rules.js';
+import { apply, chooseOperation, interval, catchUpGrace, stepRage, starsFor, tolerance, countColor } from '../src/rules.js';
 import { launchFlight, advanceFlight, flightIsGone, CROSSING_TIME, FIXED_STEP } from '../src/physics.js';
 
 function seeded(seed = 17) {
@@ -110,4 +110,18 @@ test('three-minute runs remain physically achievable at seven taps per second', 
     }
     assert.ok(spawned > 100);
   }
+});
+
+
+test('count color interpolates from exact green through 15% yellow to fully inaccurate red', () => {
+  assert.equal(countColor(100, 100), 'rgb(155, 225, 164)');
+  assert.equal(countColor(85, 100), 'rgb(234, 196, 123)');
+  assert.equal(countColor(115, 100), countColor(85, 100));
+  assert.equal(countColor(0, 100), 'rgb(245, 112, 123)');
+  assert.equal(countColor(250, 100), countColor(0, 100));
+  assert.notEqual(countColor(95, 100), countColor(100, 100));
+  assert.notEqual(countColor(50, 100), countColor(85, 100));
+  assert.equal(countColor(-85, -100), countColor(85, 100));
+  assert.equal(countColor(0, 0), countColor(100, 100));
+  assert.equal(countColor(1, 0), countColor(0, 100));
 });

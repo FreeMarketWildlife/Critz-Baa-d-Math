@@ -1,4 +1,4 @@
-import { apply, tolerance, chooseOperation, interval, catchUpGrace, starsFor, stepRage } from './rules.js';
+import { apply, tolerance, chooseOperation, interval, catchUpGrace, starsFor, stepRage, countColor } from './rules.js';
 import { launchFlight, advanceFlight, flightIsGone, FIXED_STEP } from './physics.js';
 
 const $ = id => document.getElementById(id);
@@ -57,6 +57,7 @@ function update() {
   const seconds = mode === 'endless' ? Math.floor(elapsed) : Math.ceil(Math.max(0, duration - elapsed));
   $('time').textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   $('count').textContent = count;
+  $('count').style.color = countColor(count, target);
   $('count').style.transform = `scale(${1 + countKick * .08})`;
   $('sheep').textContent = n;
   $('state').textContent = rage > .7 ? 'WAKING UP' : rage > .3 ? 'RESTLESS' : 'SOUND ASLEEP';

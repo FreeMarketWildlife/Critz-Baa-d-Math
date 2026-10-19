@@ -27,3 +27,14 @@ export function stepRage(rage, error, limit, dt, grace = false) {
   const rate = error >= limit ? .8 : .09 + .38 * (error - 1) / (limit - 1);
   return Math.min(1, rage + dt * rate);
 }
+
+// Relative error uses the true total's magnitude, so over/under and negative
+// totals behave symmetrically. At zero, one count away is fully inaccurate.
+export function countColor(count, target) {
+  const error = Math.min(1, Math.abs(count - target) / Math.max(1, Math.abs(target)));
+  const green = [155, 225, 164], yellow = [234, 196, 123], red = [245, 112, 123];
+  const [from, to, t] = error <= .15
+    ? [green, yellow, error / .15]
+    : [yellow, red, (error - .15) / .85];
+  return `rgb(${from.map((channel, i) => Math.round(channel + (to[i] - channel) * t)).join(', ')})`;
+}

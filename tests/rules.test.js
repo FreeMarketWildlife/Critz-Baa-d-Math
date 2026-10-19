@@ -11,11 +11,18 @@ test('all four operations apply to the running total', () => {
   assert.equal(apply(8, '+1'), 9); assert.equal(apply(8, '−1'), 7);
   assert.equal(apply(8, '×2'), 16); assert.equal(apply(8, '÷2'), 4);
 });
-test('short warm-up introduces all operations within the opening fifteen sheep', () => {
-  for (let i = 0; i < 5; i++) assert.equal(chooseOperation(i, i, () => .99), '+1');
-  assert.equal(chooseOperation(5, 6, () => .99), '−1');
-  assert.equal(chooseOperation(8, 6, () => .99), '×2');
-  assert.equal(chooseOperation(12, 6, () => .99), '÷2');
+test('operation unlocks follow the 15, 30, and 60 second boundaries', () => {
+  const possible = time => new Set(Array.from({ length: 1000 }, (_, i) => chooseOperation(time, 8, () => i / 1000)));
+  for (const time of [0, 5, 14.999]) assert.deepEqual(possible(time), new Set(['+1']));
+  for (const time of [15, 29.999]) assert.deepEqual(possible(time), new Set(['+1', '−1']));
+  for (const time of [30, 59.999]) assert.deepEqual(possible(time), new Set(['+1', '−1', '×2']));
+  assert.deepEqual(possible(60), new Set(['+1', '−1', '×2', '÷2']));
+  assert.ok(Array.from({ length: 1000 }, (_, i) => chooseOperation(30, 8, () => i / 1000)).filter(op => op === '×2').length < 100);
+});
+test('division stays whole and multiplication remains available at post-warmup totals', () => {
+  assert.equal(chooseOperation(30, 30, () => .999), '×2');
+  for (let i = 0; i < 1000; i++) assert.notEqual(chooseOperation(90, 7, () => i / 1000), '÷2');
+  assert.equal(chooseOperation(60, -8, () => .999), '÷2');
 });
 test('new pacing ramps quickly but large arithmetic changes retain a tap budget', () => {
   assert.ok(interval(25, 1) < .6);
@@ -64,7 +71,7 @@ test('dense overlapping flights preserve arithmetic order and whole-number divis
   while (crossed < 2000) {
     clock += FIXED_STEP;
     if (clock >= next && spawned < 2000) {
-      const op = chooseOperation(spawned, planned, random), after = apply(planned, op);
+      const op = chooseOperation(clock, planned, random), after = apply(planned, op);
       bodies.push({ ...launchFlight(spawned % 2 ? -1 : 1, random), op, expected: after, index: spawned });
       next = clock + interval(spawned + 1, after - planned); planned = after; spawned++;
     }
@@ -87,7 +94,7 @@ test('three-minute runs remain physically achievable at seven taps per second', 
     while (clock < 180) {
       clock += FIXED_STEP;
       if (clock >= next) {
-        const op = chooseOperation(spawned, planned, random), after = apply(planned, op);
+        const op = chooseOperation(clock, planned, random), after = apply(planned, op);
         bodies.push({ ...launchFlight(spawned % 2 ? -1 : 1, random), op });
         next = clock + interval(spawned + 1, after - planned); planned = after; spawned++;
       }

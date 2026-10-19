@@ -4,19 +4,21 @@ export const apply = (value, op) => ({
 
 export const tolerance = n => 10 + Math.min(6, Math.floor(n / 25));
 
-export function chooseOperation(n, value, random = Math.random, mode = 'campaign') {
-  const intro = mode === 'demo' ? 4 : 5;
-  if (n < intro) return '+1';
-  const options = ['+1', '+1', '−1', '−1'];
-  if (n >= intro + 3 && Math.abs(value) >= 2 && Math.abs(value) <= 16) options.push('×2');
-  if (n >= intro + 7 && value !== 0 && value % 2 === 0) options.push('÷2', '÷2');
+// Unlocks use active play time; pausing never advances the curriculum.
+export function chooseOperation(elapsed, value, random = Math.random) {
+  if (elapsed < 15) return '+1';
+  const options = ['+1', '+1', '+1', '+1', '+1', '+1', '−1', '−1', '−1', '−1'];
+  // One multiplication slot keeps doubles occasional. Large changes still reserve
+  // enough tap time through interval(), and projected totals keep division whole.
+  if (elapsed >= 30 && Math.abs(value) >= 2 && Math.abs(value) <= 40) options.push('×2');
+  if (elapsed >= 60 && value !== 0 && value % 2 === 0) options.push('÷2', '÷2');
   return options[Math.min(options.length - 1, Math.floor(random() * options.length))];
 }
 
 // Consecutive crossings retain this spacing even when several sheep are airborne.
 // Large changes reserve a seven-taps/second catch-up budget before the next crossing.
 export const interval = (n, change) => Math.max(.52, 1.65 - n * .045, Math.abs(change) / 7 + .35);
-export const catchUpGrace = change => Math.min(.7, .14 + Math.abs(change) / 10);
+export const catchUpGrace = change => .14 + Math.abs(change) / 7;
 export const starsFor = greenRatio => greenRatio >= .97 ? 3 : greenRatio >= .8 ? 2 : 1;
 
 export function stepRage(rage, error, limit, dt, grace = false) {

@@ -59,14 +59,13 @@ function update() {
   $('count').textContent = count;
   $('count').style.transform = `scale(${1 + countKick * .08})`;
   $('sheep').textContent = n;
-  $('rage').style.width = `${rage * 100}%`;
   $('state').textContent = rage > .7 ? 'WAKING UP' : rage > .3 ? 'RESTLESS' : 'SOUND ASLEEP';
   $('feedback').textContent = rage > .7 ? 'The dream is slipping…' : rage > .3 ? 'Find your rhythm.' : 'Keep the dream alive.';
   $('danger').style.opacity = rage * (.65 + .2 * Math.sin(visualTime * (4 + rage * 5)));
   $('progress').style.width = mode === 'endless' ? '0' : `${Math.min(100, elapsed / duration * 100)}%`;
   $('operation').style.opacity = Math.max(0, 1 - (elapsed - lastOp) / .65);
   $('operation').style.transform = `translate(-50%, ${-(elapsed - lastOp) * 12}px)`;
-  $('pace').textContent = launched < 5 ? 'SETTLE IN' : launched < 12 ? 'DREAM DEEPER' : launched < 25 ? 'QUICKENING' : 'FEVER DREAM';
+  $('pace').textContent = elapsed < 15 ? 'SETTLE IN' : elapsed < 30 ? 'DREAM DEEPER' : elapsed < 60 ? 'QUICKENING' : 'FEVER DREAM';
   document.documentElement.style.setProperty('--tap-left', tapSide < 0 ? tapGlow * .1 : 0);
   document.documentElement.style.setProperty('--tap-right', tapSide > 0 ? tapGlow * .1 : 0);
 }
@@ -130,7 +129,7 @@ function tick(dt) {
   // Plan against every airborne operation, not just those that already crossed.
   // All flights cross after .8 s, so even dense overlapping launches stay ordered.
   if (elapsed >= next) {
-    const op = chooseOperation(launched, plannedTarget, Math.random, mode);
+    const op = chooseOperation(elapsed, plannedTarget);
     const after = apply(plannedTarget, op), changed = after - plannedTarget;
     lastSide = Math.random() < .78 ? -lastSide : lastSide;
     const flight = { ...launchFlight(lastSide), op };

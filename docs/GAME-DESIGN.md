@@ -8,13 +8,14 @@ A wolf counts sheep to sleep. Losing count wakes it and ends in a ravenous, bloo
 
 - Start total and player count at zero. Each crossing of the central line applies exactly one operation, in order.
 - White +1; red −1; proposed gold ×2 and blue ÷2. Both symbol and color communicate meaning.
-- Five opening +1 sheep (four in quick dream). Subtraction follows immediately; ×2 unlocks at sheep nine and ÷2 at sheep thirteen in standard modes.
-- Generate ÷2 only for nonzero even totals, including negative totals. Offer ×2 only for absolute totals 2–16. Symbol and color both identify an operation; labels stay upright while the bodies tumble.
+- All modes use active-time unlocks: 0–15 seconds only +1; at 15 seconds add −1; at 30 seconds add occasional ×2; at 60 seconds add ÷2. Previous operations remain in the mix. Unlocks govern launches; operations still apply on the center crossing 0.8 seconds later. Pause freezes progression. The 60-second demo finishes before division launches can cross.
+- Generate ÷2 only for nonzero even totals, including negative totals. Offer ×2 only for absolute totals 2–40. Symbol and color both identify an operation; labels stay upright while the bodies tumble.
 - Launches alternate sides most of the time, with occasional repeats. Every flight uses a constant downward acceleration, horizontal momentum, initial upward velocity, and independent angular velocity. Simulation runs at a fixed 120 Hz. Normalized world coordinates keep the action framed across screen sizes.
 - Each flight reaches the central counting gate 0.8 seconds after launch. Launch height, point, gravity, and spin vary; flights then descend below the screen. Crossing time stays consistent so overlapping operations cannot overtake each other. Each crossing is applied exactly once.
 - Operations are generated against the projected total after all airborne sheep. This prevents a queued division from becoming fractional when preceding sheep cross.
 - Base spacing drops from 1.65 seconds to 0.52 seconds over the first 26 launches. Multiple sheep can be airborne together. Large operations reserve at least abs(change)/7 + 0.35 seconds until the next crossing, allowing seven taps per second plus a small margin.
-- Catch-up grace is min(0.7, 0.14 + abs(change)/10) seconds, always shorter than the next crossing interval. Grace holds rage steady for errors; it does not heal missed counts. Within ±1, rage recovers at 0.3/second. Otherwise rage grows from 0.09 toward 0.47/second below tolerance and at 0.8/second at or above tolerance.
+- Catch-up grace is 0.14 + abs(change)/7 seconds, always shorter than the next crossing interval. Grace holds rage steady for errors; it does not heal missed counts. Within ±1, rage recovers at 0.3/second. Otherwise rage grows from 0.09 toward 0.47/second below tolerance and at 0.8/second at or above tolerance.
+- Rage is communicated by screen redness and the existing wolf reactions; there is no rage bar.
 - Tolerance starts at 10 and increases by one every 25 sheep, capped at 16. Rage is clamped to 0–1; 1 ends the run. Difficulty and seven-taps-per-second budgeting are provisional playtest values, not a universal accessibility guarantee.
 - Crossing sparks, a flashing center gate, directional tap light/ripples, counter bounce, and short optional launch/count sounds provide feedback without revealing the answer.
 - Night one lasts 180 active seconds; quick dream 60; endless has no finish time. Pausing freezes simulation; backgrounding pauses automatically.

@@ -8,14 +8,18 @@ A wolf counts sheep to sleep. Losing count wakes it and ends in a ravenous, bloo
 
 - Start total and player count at zero. Each crossing of the central line applies exactly one operation, in order.
 - White +1; red −1; proposed gold ×2 and blue ÷2. Both symbol and color communicate meaning.
-- First 30 operations are white in standard modes. Quick dream shortens this introduction to eight. Subtraction then enters; multiplication unlocks five sheep later and division ten sheep later.
-- Generate ÷2 only for positive even totals. Offer ×2 only for totals 1–20. This keeps integer-only tapping practical. Negative totals are supported.
-- Base spacing decreases from 3.3 to 1.8 seconds. Each event reserves at least abs(total change)/5 + 1.1 seconds before the next event: a five-taps-per-second catch-up budget.
-- After crossing, rage assessment has a grace period of max(0.65, abs(change)/5 + 0.3) seconds. Errors of 0–1 are green and recover rage at 0.24/second. Above that, rage grows up to 0.13/second below the tolerance. At or above the tolerance it grows at 0.42/second. Tolerance starts at 10 and grows by one every 15 sheep, capped at 30. Grace recovers 0.08/second. Rage is clamped to 0–1; 1 ends the run.
-- This replaces instant failure at a ten-point difference with a readable danger window. Arithmetic jumps never cause instant death. No promise of universal human difficulty is implied: playtesting must tune these provisional values.
+- Five opening +1 sheep (four in quick dream). Subtraction follows immediately; ×2 unlocks at sheep nine and ÷2 at sheep thirteen in standard modes.
+- Generate ÷2 only for nonzero even totals, including negative totals. Offer ×2 only for absolute totals 2–16. Symbol and color both identify an operation; labels stay upright while the bodies tumble.
+- Launches alternate sides most of the time, with occasional repeats. Every flight uses a constant downward acceleration, horizontal momentum, initial upward velocity, and independent angular velocity. Simulation runs at a fixed 120 Hz. Normalized world coordinates keep the action framed across screen sizes.
+- Each flight reaches the central counting gate 0.8 seconds after launch. Launch height, point, gravity, and spin vary; flights then descend below the screen. Crossing time stays consistent so overlapping operations cannot overtake each other. Each crossing is applied exactly once.
+- Operations are generated against the projected total after all airborne sheep. This prevents a queued division from becoming fractional when preceding sheep cross.
+- Base spacing drops from 1.65 seconds to 0.52 seconds over the first 26 launches. Multiple sheep can be airborne together. Large operations reserve at least abs(change)/7 + 0.35 seconds until the next crossing, allowing seven taps per second plus a small margin.
+- Catch-up grace is min(0.7, 0.14 + abs(change)/10) seconds, always shorter than the next crossing interval. Grace holds rage steady for errors; it does not heal missed counts. Within ±1, rage recovers at 0.3/second. Otherwise rage grows from 0.09 toward 0.47/second below tolerance and at 0.8/second at or above tolerance.
+- Tolerance starts at 10 and increases by one every 25 sheep, capped at 16. Rage is clamped to 0–1; 1 ends the run. Difficulty and seven-taps-per-second budgeting are provisional playtest values, not a universal accessibility guarantee.
+- Crossing sparks, a flashing center gate, directional tap light/ripples, counter bounce, and short optional launch/count sounds provide feedback without revealing the answer.
 - Night one lasts 180 active seconds; quick dream 60; endless has no finish time. Pausing freezes simulation; backgrounding pauses automatically.
-- Stars use time within ±1, excluding catch-up grace: 3 for at least 97%, 2 for at least 80%, 1 for surviving. A perfect green run earns 3. Failed runs earn none. Browser-local best ratings are saved.
+- Stars use time within ±1, excluding catch-up grace: 3 for at least 97%, 2 for at least 80%, 1 for surviving. A perfect green run earns 3. Failed runs earn none. Browser-local best ratings are saved separately from the slower original prototype.
 
 ## Visual boundary
 
-Circles with symbols are deliberately temporary. The prototype uses night scenery and a red failure treatment. Wolf animation, sheep models, and the intended graphic game-over scene are not implemented. The campaign currently contains one playable night; no invented story or level map.
+Circles with symbols are deliberately temporary. The prototype uses night scenery and a red failure treatment. A procedural canvas wolf sleeps at the bottom, breathes, emits drifting Zs, twitches its ears as rage rises, and opens an eye near waking. Sheep remain symbolic wool-edged discs. Final sheep artwork and the intended graphic game-over scene are not implemented. The campaign currently contains one playable night; no invented story or level map.

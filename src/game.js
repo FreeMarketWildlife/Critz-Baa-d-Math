@@ -21,6 +21,7 @@ let n = 0, launched = 0, elapsed = 0, rage = 0;
 let perfectHits = 0, perfectChain = 0, perfectFlash = 0;
 let next = .45, grace = 0, orbs = [], particles = [], rings = [], lastSide = 1;
 const sounds = new DreamSounds();
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 let previous = performance.now(), lastOp = -10;
 let accumulator = 0, visualTime = 0, countKick = 0, crossingGlow = 0, tapGlow = 0, tapSide = 1;
 
@@ -222,19 +223,24 @@ function path(points, fill) {
 
 function drawWolf(time) {
   const playing = ['playing', 'paused', 'finale'].includes(status);
-  const drift = Math.min(1, levitation.height / .32) * .24;
+  const drift = (1 - Math.exp(-levitation.height / .32)) * .24;
   const x = playing ? w * (.5 + drift) : w * (w < 600 ? .70 : .77);
   const scale = Math.min(w / (w < 600 ? 490 : 620), h / 650, 1.18) * (playing ? .8 : 1.12);
-  const y = h * (.89 - (playing ? levitation.height - cameraHeight(levitation.height) : 0)) - 28 * scale;
+  const afloat = playing ? 1 - Math.exp(-levitation.height * 8) : 0;
+  const sway = reducedMotion.matches ? 0 : Math.sin(time * .65) * 2 * afloat;
+  const y = h * (.89 - (playing ? levitation.height - cameraHeight(levitation.height) : 0)) - 28 * scale + sway;
   const restless = status === 'result' && rage >= 1 ? 1 : playing && levitation.height === 0 ? rage : 0;
   const breathe = Math.sin(time * (2 + restless * 4));
   ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
+  if (!reducedMotion.matches && afloat) ctx.rotate(levitation.falling ? Math.sin(levitation.fallTime * 2.2) * .10 * Math.min(1, levitation.fallTime) : Math.sin(time * .42) * .018 * afloat);
   if (!playing || levitation.height < .15) ellipse(0, 18, 115, 16, '#050d1770');
   // Curled body, lighter ruff, and a broad tail wrapped around the paws.
   ellipse(13, -15, 83, 48 + breathe * 1.7, '#3a4e62', -.08);
   ellipse(27, -24, 59, 33 + breathe, '#465d70', -.12);
-  ctx.strokeStyle = '#80969b45'; ctx.lineWidth = 2;
+  ctx.strokeStyle = '#c3dfec66'; ctx.lineWidth = 2;
+  ctx.shadowColor = '#c4e4f04a'; ctx.shadowBlur = 6;
   ctx.beginPath(); ctx.ellipse(13, -16, 81, 46 + breathe * 1.7, -.08, 3.4, 5.8); ctx.stroke();
+  ctx.shadowBlur = 0;
   ctx.fillStyle = '#283c50'; ctx.beginPath(); ctx.moveTo(76, -22);
   ctx.bezierCurveTo(145, 0, 105, 59, 23, 37); ctx.bezierCurveTo(-15, 27, -22, 14, -13, 8);
   ctx.bezierCurveTo(25, 26, 86, 20, 76, -22); ctx.fill();
@@ -246,6 +252,8 @@ function drawWolf(time) {
   ctx.save(); ctx.translate(-50, -25 - breathe * .9);
   const twitch = restless * Math.sin(time * 8) * 3;
   path([[-27, -5], [-30 - twitch, -61], [3, -29], [26, -50 + twitch], [28, -3]], '#526b7d');
+  ctx.strokeStyle = '#c6e0eb6a'; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.moveTo(-27, -5); ctx.lineTo(-30 - twitch, -61); ctx.lineTo(3, -29); ctx.stroke();
   path([[-23, -41], [-20, -15], [-3, -26]], '#9e9da0');
   path([[12, -26], [23, -38], [23, -12]], '#90959b');
   ellipse(-1, -3, 40, 32, '#607b8a', -.18);
@@ -276,7 +284,7 @@ function draw(time) {
   ctx.clearRect(0, 0, w, h);
   const height = ['playing', 'paused', 'finale'].includes(status) ? levitation.height : 0;
   drawDreamSky(ctx, w, h, height, time, stars);
-  drawGrass(ctx, w, h, cameraHeight(height), levitation.impact, ['playing', 'paused', 'finale'].includes(status) ? .5 : w < 600 ? .70 : .77);
+  drawGrass(ctx, w, h, cameraHeight(height), levitation.impact, ['playing', 'paused', 'finale'].includes(status) ? .5 : w < 600 ? .70 : .77, time, reducedMotion.matches);
   if (status !== 'finale' && status !== 'result') drawWolf(time);
   if (status === 'finale') drawFinale();
   if (status === 'result') drawHunter(ctx, w * (w < 600 ? .78 : .77), h * .83, Math.min(w / 500, h / 650, 1.5), { bloody: true, look: -3 });
@@ -319,7 +327,7 @@ function drawFinale() {
     ctx.restore();
   }
   const wake = Math.min(1, Math.max(0, (t - .16) / .49));
-  let x = w * (.5 + Math.min(1, levitation.height / .32) * .24 * (1 - wake));
+  let x = w * (.5 + (1 - Math.exp(-levitation.height / .32)) * .24 * (1 - wake));
   const restingY = h * (.89 - levitation.height + cameraHeight(levitation.height)) - 28 * Math.min(w / (w < 600 ? 490 : 620), h / 650, 1.18) * .8;
   let y = restingY + (h * .5 - restingY) * wake;
   const victim = victims[beat.index];
@@ -361,7 +369,7 @@ function frame(t) {
   if (status === 'playing') {
     accumulator += dt;
     while (accumulator >= FIXED_STEP && status === 'playing') { tick(FIXED_STEP); accumulator -= FIXED_STEP; }
-    if (status === 'playing') { update(); sounds.updateMusic(slowArithmetic(orbs)); }
+    if (status === 'playing') { update(); sounds.updateMusic(slowArithmetic(orbs), levitation.height); }
   }
   if (status === 'finale') {
     finaleTime += dt;

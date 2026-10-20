@@ -36,7 +36,7 @@ Only `index.html` and `src/` are included in the public site artifact.
 
 ## Personality and musical counting
 
-The base +1 sheep stays happy. Red −1 sheep are angry, gold ×2 sheep are goofy, and blue ÷2 sheep cry. All face their flight direction without mirroring the math symbols. Taps cycle through C major with softly blended octave layers instead of rising forever. The wolf sleeps on the grass below the counting area, then drifts upward after ten seconds without rage gain.
+The base +1 sheep stays happy. Red −1 sheep are angry, gold ×2 sheep are goofy, and blue ÷2 sheep cry. All face their flight direction without mirroring the math symbols. Taps cycle through C major with softly blended octave layers instead of rising forever. The wolf sleeps on the grass below the counting area, then drifts upward after fifteen seconds without rage gain.
 
 Run the art review at http://localhost:4187/tests/visual-review.html to inspect every personality facing both directions. Rule tests include anticipation timing, perfect percentages, bounded C-major notes, crossing order, and predictive seven-taps-per-second full-night simulations.
 
@@ -63,8 +63,15 @@ Accuracy follows the latest visible sheep immediately, including overlapping fli
 
 ## Sleeping ascent
 
-Ten continuous seconds without building rage starts the sleeping wolf levitating. There is no height ceiling: the camera follows him from the grass into a starfield. The sky uses the Libriam Globe’s orange dwarf sun, gold-ringed Kronos, complementary blue-ringed Zuhal, small Moon, and thin atmospheric limb. Celestial distances are compressed for this dream view; it is not a scale orbital map or new Dragex lore.
+Fifteen continuous seconds without building rage starts the sleeping wolf levitating. There is no height ceiling: the camera follows him from the grass into a starfield. The sky uses the Libriam Globe’s orange dwarf sun, gold-ringed Kronos, complementary blue-ringed Zuhal, large full Moon behind the wolf, and thin atmospheric limb. Celestial distances are compressed for this dream view; it is not a scale orbital map or new Dragex lore.
 
-Actual rage gain breaks the calm streak and starts a gravity-driven fall. Correcting the count cannot cancel that fall. Ordinary rage accumulation waits until landing, so the wolf can fall all the way from space; impact adds 0.5 to internal rage once, capped at 1. Another ten calm seconds on the ground can start a fresh ascent. Pause freezes the ascent and fall; restart clears both. The rage bar, its DOM elements, and its CSS are removed; existing redness and wolf behavior provide feedback.
+The ascent eases in over eight seconds and stays below 2.8% of a viewport per second, with a soft camera pickup and a little sleeping sway. Actual rage gain breaks the calm streak: the wolf hangs briefly, then falls with increasing acceleration. Correcting the count cannot cancel that fall. Ordinary rage accumulation waits until landing, so the wolf can fall all the way from space; impact adds 0.5 to internal rage once, capped at 1. Another fifteen calm seconds on the ground can start a fresh ascent. Pause freezes the ascent and fall; restart clears both. The rage bar, its DOM elements, and its CSS are removed; existing redness and wolf behavior provide feedback.
 
 `src/levitation.js` owns the streak, uncapped altitude, gravity and impact; `src/dream-sky.js` renders the grass and celestial background. `npm test` includes streak/reset/landing regressions. With Playwright available, run `node tests/levitation-browser.cjs` against the dev server for phone, desktop and landscape checks, including pause, landing, finale and replay.
+
+
+## Moonlit flower fields
+
+Four cached layers of rolling hills move at different parallax speeds, so nearby flowers travel faster than the distant fields during ascent and descent. The meadow mixes daisies, lupines, cosmos, poppies, bluebells, and warm six-petalled flowers, with nine softly pulsing fireflies. A large full Moon provides restrained cool backlight; Kronos and Zuhal remain enormous, slow-moving skybox bodies. The flower positions are deterministic and the cached layers rebuild only on viewport changes. Reduced motion disables decorative field wind, firefly movement, and wolf sway.
+
+`src/ambience.js` supplies quiet intermittent synthesized crickets alongside the lullaby, fades them with altitude, and shares sound, pause, home, finale, and restart controls. `tests/ambience-browser.cjs` renders the actual Web Audio output and checks silence between calls and audio lifecycle behavior.

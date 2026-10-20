@@ -1,3 +1,4 @@
+import { CricketAmbience } from './ambience.js';
 import { Lullaby } from './music.js';
 // Diatonic Shepard-style voicing: seven C-major degrees, with octave layers
 // fading around a fixed register. Wraps never drive taps into extreme pitches.
@@ -18,7 +19,7 @@ export class DreamSounds {
   constructor() {
     this.enabled = true;
     try { this.enabled = localStorage.getItem('baad-sound') !== 'off'; } catch {}
-    this.context = null; this.music = null;
+    this.context = null; this.music = null; this.ambience = null;
     this.tapStep = 0;
     this.lastBaa = -1;
     this.lastWarning = -1;
@@ -35,9 +36,11 @@ export class DreamSounds {
         limiter.threshold.value = -18; limiter.ratio.value = 8;
         this.master.connect(limiter); limiter.connect(this.context.destination);
         this.music = new Lullaby(this.context, this.master);
+        this.ambience = new CricketAmbience(this.context, this.master);
       }
       this.context.resume().catch(() => {});
       if (this.inDream && !this.music.active) this.music.resume();
+      if (this.inDream && !this.ambience.active) this.ambience.resume();
     } catch { /* The game also works without audio hardware. */ }
   }
   toggle() {
@@ -62,6 +65,7 @@ export class DreamSounds {
     this.tapStep = 0; this.unlock();
     // A muted start still needs a score ready for the first unmute gesture.
     if (this.music) this.music.start();
+    if (this.ambience) this.ambience.start();
     this.inDream = true;
   }
   playCountNote(direction = 1, kind = 'tap') {
@@ -83,12 +87,17 @@ export class DreamSounds {
   }
   tap(direction) { this.playCountNote(direction, 'tap'); }
   perfect() { this.playCountNote(1, 'perfect'); }
-  updateMusic(focused) { if (this.inDream && this.music) this.music.update(focused); }
+  updateMusic(focused, height = 0) {
+    if (!this.inDream) return;
+    if (this.music) this.music.update(focused);
+    if (this.ambience) this.ambience.update(height);
+  }
   resume() {
     this.unlock(); this.inDream = true;
     if (this.music) { if (!this.music.active) this.music.resume(); }
+    if (this.ambience) this.ambience.resume();
   }
-  stopMusic() { this.inDream = false; if (this.music) this.music.stop(); }
+  stopMusic() { this.inDream = false; if (this.music) this.music.stop(); if (this.ambience) this.ambience.stop(); }
   launch(side) {
     this.note(side < 0 ? 170 : 195, .13, 0, 'sine', .09, 560);
   }
@@ -130,6 +139,7 @@ export class DreamSounds {
   }
   pause() {
     this.inDream = false; if (this.music) this.music.pause();
+    if (this.ambience) this.ambience.stop();
     if (this.context) this.context.suspend().catch(() => {});
   }
 }

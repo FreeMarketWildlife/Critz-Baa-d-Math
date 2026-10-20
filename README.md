@@ -30,6 +30,8 @@ Synthesized pops, launch whistles, chimes, occasional cartoon bleats, danger hea
 
 ## Public release
 
-Play at https://freemarketwildlife.github.io/Critz-Baa-d-Math/.
+Play the immutable release at https://rawcdn.githack.com/FreeMarketWildlife/Critz-Baa-d-Math/e192978eb8f353a3b96818082d163425a6091956/index.html. The CDN may show an external-content notice; choose “Open the page.” No login is required.
+
+GitHub Pages deploys successfully, but its default URL inherits the organization’s existing `freemarketwildlife.com` domain and currently redirects to a 404. The CDN link serves the same public game files without changing organization DNS or unrelated hosting.
 Every push to `main` runs the rule tests before deploying to GitHub Pages.
 Only `index.html` and `src/` are included in the public site artifact.

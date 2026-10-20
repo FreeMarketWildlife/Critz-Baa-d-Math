@@ -28,7 +28,7 @@ An original lullaby, musical counting chimes, launch whistles, occasional cartoo
 
 ## Public release
 
-Play the immutable release at https://rawcdn.githack.com/FreeMarketWildlife/Critz-Baa-d-Math/bd7e4e484f0f618e7c3d8240c53cbebc59ec7a88/index.html. The CDN may show an external-content notice; choose “Open the page.” No login is required.
+Play the immutable release at https://rawcdn.githack.com/FreeMarketWildlife/Critz-Baa-d-Math/41d1281410dda2478490228b939d60e70369d412/index.html. The CDN may show an external-content notice; choose “Open the page.” No login is required.
 
 GitHub Pages deploys successfully, but its default URL inherits the organization’s existing `freemarketwildlife.com` domain and currently redirects to a 404. The CDN link serves the same public game files without changing organization DNS or unrelated hosting.
 Every push to `main` runs the rule tests before deploying to GitHub Pages.
@@ -53,3 +53,5 @@ Open `/tests/audio-review.html` to render an eighteen-second soundtrack sample t
 ## Combined survival release
 
 All runtime changes are included: phone controls, directional sheep personalities and persistent counted smiles, centered sleeping wolf, timed arithmetic unlocks, extended large-operation previews, continuous musical counting, the filtered Moonwool soundtrack, and the wolf wake/eating finale. The game ends with a scorecard and Play Again / Go Back to Sleep actions. Dream score is 100 per sheep passed + 50 per perfect + 10 per whole second survived.
+
+The combined public release also includes compact phone scorecards with paired 44px-or-larger restart/navigation controls.

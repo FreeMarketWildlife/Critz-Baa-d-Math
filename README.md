@@ -8,13 +8,11 @@ Run `npm run dev` and open http://localhost:4187. Run `npm test` for the math an
 
 Tap the left half to subtract one; tap the right half to add one. Arrow keys or A/D also work. Operations apply when a sheep crosses the center line. Keep the running total in your head; the true answer is revealed only after a run. For a perfect count, reach the next sheep’s resulting total before it crosses the center, and hold it through the crossing. Perfect crossings calm the wolf and count toward the final perfect percentage. Escape or Space pauses; switching tabs automatically pauses.
 
-- **Night one:** three minutes, +1 only for 15 seconds, then −1 joins, occasional ×2 joins at 30 seconds, and ÷2 joins at 60 seconds.
-- **Quick dream:** a one-minute preview with the same gradual unlocks; division is introduced in the longer modes.
-- **Endless:** survive an accelerating stream.
+The current menu starts **endless survival**. Arithmetic unlocks use active time: +1 only for the first 15 seconds, −1 joins at 15 seconds, occasional ×2 at 30 seconds, and ÷2 at 60 seconds. The three-minute campaign and quick-dream menu have been replaced by this combined survival release.
 
 Sheep pop up from both sides on gravity-driven arcs, spin, and fall back offscreen. Each counts once when crossing the center gate. The fixed-step physics and queued arithmetic support overlapping flights.
 
-White +1, red −1, gold ×2, blue ÷2. Screen redness communicates rage without a rage bar. Sound is optional. Campaign best stars save on this browser when local storage is available.
+White +1, red −1, gold ×2, blue ÷2. Screen redness communicates rage without a rage bar. Sound is optional. The end screen reports survival time, sheep passed, perfect percentage, peak math total, and dream score.
 
 See [game design](docs/GAME-DESIGN.md) and [roadmap](docs/ROADMAP.md).
 
@@ -51,3 +49,7 @@ Taps, ordinary crossing chimes, and perfect chimes share one continuous C-major 
 A sheep turns delighted once its own total is reached, before or after its crossing, and stays delighted until despawning. Only the next incoming and most recent crossed sheep can receive new credit, so repeated totals do not accidentally credit the whole flock. This visual credit is separate from the existing held-through-crossing perfect timing rule.
 
 Open `/tests/audio-review.html` to render an eighteen-second soundtrack sample through the actual Web Audio synthesizer, including a filter demonstration from seconds 6–11. `/tests/visual-review.html` also shows the counted expressions.
+
+## Combined survival release
+
+All runtime changes are included: phone controls, directional sheep personalities and persistent counted smiles, centered sleeping wolf, timed arithmetic unlocks, extended large-operation previews, continuous musical counting, the filtered Moonwool soundtrack, and the wolf wake/eating finale. The game ends with a scorecard and Play Again / Go Back to Sleep actions. Dream score is 100 per sheep passed + 50 per perfect + 10 per whole second survived.

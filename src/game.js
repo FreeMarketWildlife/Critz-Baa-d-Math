@@ -1,4 +1,5 @@
 import { slowArithmetic } from './music.js';
+import { FINALE_DURATION, runStats, attackBeat, drawHunter } from './finale.js';
 import { drawSheep } from './sheep.js';
 import { apply, tolerance, chooseOperation, interval, catchUpGrace, starsFor, stepRage, countColor, observeAnticipation, isPerfectCrossing, calmForPerfect, perfectPercent, countingError, creditCountedSheep } from './rules.js';
 import { DreamSounds } from './sound.js';
@@ -11,7 +12,8 @@ const stars = Array.from({ length: 130 }, () => ({
   x: Math.random(), y: Math.random() * .8, r: Math.random() * 1.4 + .3, phase: Math.random() * 6,
 }));
 let w, h, dpr;
-let mode = 'campaign', status = 'menu', count = 0, target = 0, plannedTarget = 0;
+let mode = 'endless', status = 'menu', count = 0, target = 0, plannedTarget = 0;
+let peak = 0, finaleTime = 0, victims = [], biteIndex = -1;
 let n = 0, launched = 0, elapsed = 0, rage = 0;
 let perfectHits = 0, perfectChain = 0, perfectFlash = 0;
 let next = .45, grace = 0, orbs = [], particles = [], rings = [], lastSide = 1;
@@ -34,12 +36,13 @@ function screens(id) {
 }
 
 function begin(m) {
-  mode = m; status = 'playing';
+  mode = 'endless'; m = mode; status = 'playing';
+  peak = 0; finaleTime = 0; victims = []; biteIndex = -1;
   count = target = plannedTarget = n = launched = elapsed = rage = 0;
   perfectHits = perfectChain = perfectFlash = 0;
   next = .45; grace = 0; accumulator = 0; orbs = []; particles = []; rings = [];
   lastOp = -10; countKick = crossingGlow = tapGlow = 0;
-  $('modeLabel').textContent = m === 'campaign' ? 'NIGHT ONE' : m === 'demo' ? 'QUICK DREAM' : 'ENDLESS';
+  $('modeLabel').textContent = 'TIME SURVIVED';
   sounds.start();
   screens('play'); update();
 }
@@ -48,7 +51,7 @@ function nextSheep() { return orbs.find(orb => !orb.crossed); }
 function readyAhead() { const sheep = nextSheep(); return sheep && count === sheep.result; }
 function update() {
   const duration = mode === 'demo' ? 60 : 180;
-  const seconds = mode === 'endless' ? Math.floor(elapsed) : Math.ceil(Math.max(0, duration - elapsed));
+  const seconds = Math.floor(elapsed);
   $('time').textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   $('count').textContent = count;
   $('count').style.color = countColor(count, readyAhead() ? count : target);
@@ -59,7 +62,7 @@ function update() {
   $('perfect').style.opacity = perfectFlash > .1 || readyAhead() ? 1 : 0;
   $('feedback').textContent = rage > .7 ? 'The dream is slipping…' : rage > .3 ? 'Find your rhythm.' : 'Keep the dream alive.';
   $('danger').style.opacity = rage * (.65 + .2 * Math.sin(visualTime * (4 + rage * 5)));
-  $('progress').style.width = mode === 'endless' ? '0' : `${Math.min(100, elapsed / duration * 100)}%`;
+  $('progress').style.width = `${rage * 100}%`;
   $('operation').style.opacity = Math.max(0, 1 - (elapsed - lastOp) / .65);
   $('operation').style.transform = `translate(-50%, ${-(elapsed - lastOp) * 12}px)`;
   $('pace').textContent = elapsed < 15 ? 'SETTLE IN' : elapsed < 30 ? 'DREAM DEEPER' : elapsed < 60 ? 'QUICKENING' : 'FEVER DREAM';
@@ -67,18 +70,24 @@ function update() {
   document.documentElement.style.setProperty('--tap-right', tapSide > 0 ? tapGlow * .1 : 0);
 }
 
-function finish(win) {
+function finish() {
+  status = 'finale'; finaleTime = 0; accumulator = 0; biteIndex = -1;
+  victims = orbs.map(orb => ({ ...orb, trail: [] }));
+  screens('finale'); sounds.finish(false);
+}
+function showResult() {
   status = 'result'; screens('result');
-  const perfectRatio = n ? perfectHits / n : 0;
-  const award = win ? starsFor(perfectRatio) : 0;
-  $('resultTag').textContent = win ? 'THE SUN IS RISING' : 'THE WOLF WOKE UP';
-  $('resultTitle').textContent = win ? 'A dream well kept.' : 'Baa’d night.';
-  $('stars').textContent = win ? '★'.repeat(award) + '☆'.repeat(3 - award) : '☾';
-  $('resultText').textContent = `${n} sheep · ${Math.floor(elapsed)} seconds · ${perfectPercent(perfectHits, n)}% perfect (${perfectHits}/${n} early counts). Your count: ${count}. True count: ${target}.`;
-  if (win) {
-    try { localStorage.setItem('baad-v3-' + mode, Math.max(award, Number(localStorage.getItem('baad-v3-' + mode) || 0))); } catch {}
-  }
-  sounds.finish(win);
+  const stats = runStats({ sheep: n, perfect: perfectHits, peak, seconds: elapsed });
+  $('resultTag').textContent = 'THE DREAM IS OVER';
+  $('resultTitle').textContent = 'Counting on dinner.';
+  $('stars').textContent = stats.score.toLocaleString();
+  $('resultText').textContent = '100 per sheep passed + 50 per perfect + 10 per second survived.';
+  $('statSheep').textContent = n;
+  $('statPerfect').textContent = `${perfectPercent(perfectHits, n)}% (${perfectHits}/${n})`;
+  $('statPeak').textContent = peak;
+  const sec = Math.floor(elapsed);
+  $('statTime').textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  $('again').focus({ preventScroll: true });
 }
 
 function tap(delta, event) {
@@ -103,7 +112,7 @@ $('resume').onclick = () => { sounds.resume(); status = 'playing'; accumulator =
 function home() {
   sounds.stopMusic();
   status = 'menu'; orbs = []; particles = []; rings = []; screens('menu');
-  try { $('best').textContent = localStorage.getItem('baad-v3-campaign') ? `NIGHT ONE BEST  ${'★'.repeat(Number(localStorage.getItem('baad-v3-campaign')))}` : ''; } catch {}
+  $('best').textContent = '';
 }
 $('home').onclick = home; $('quit').onclick = home; $('again').onclick = () => begin(mode);
 function soundLabel() {
@@ -157,7 +166,7 @@ function tick(dt) {
         rage = calmForPerfect(rage); sounds.perfect();
       } else perfectChain = 0;
       observeAnticipation(nextSheep(), count);
-      const before = target; target = apply(target, orb.op); n++;
+      const before = target; target = apply(target, orb.op); peak = Math.max(peak, target); n++;
       grace = elapsed + catchUpGrace(target - before);
       lastOp = elapsed; crossingGlow = 1;
       $('operation').textContent = orb.op;
@@ -182,7 +191,7 @@ function tick(dt) {
   perfectFlash = Math.max(0, perfectFlash - dt);
   countKick *= Math.exp(-dt * 13); crossingGlow *= Math.exp(-dt * 7); tapGlow *= Math.exp(-dt * 10);
   if (rage >= 1) finish(false);
-  else if (mode !== 'endless' && elapsed >= (mode === 'demo' ? 60 : 180)) finish(true);
+
 }
 
 function ellipse(x, y, rx, ry, fill, rotation = 0) {
@@ -266,7 +275,9 @@ function draw(time) {
     for (let x = 0; x <= w + 10; x += 10) ctx.lineTo(x, h * (.77 + layer * .075) + Math.sin(x / w * 8 + layer * 2) * h * .035 + Math.cos(x / w * 4 + layer) * h * .025);
     ctx.lineTo(w, h); ctx.fill();
   }
-  drawWolf(time);
+  if (status !== 'finale' && status !== 'result') drawWolf(time);
+  if (status === 'finale') drawFinale();
+  if (status === 'result') drawHunter(ctx, w * (w < 600 ? .78 : .77), h * .83, Math.min(w / 500, h / 650, 1.5), { bloody: true, look: -3 });
   if (status === 'playing' || status === 'paused') {
     // The center gate flashes on exactly the event that changes the hidden total.
     ctx.strokeStyle = `rgba(196,224,191,${.08 + crossingGlow * .5})`; ctx.lineWidth = 1 + crossingGlow * 2;
@@ -284,7 +295,45 @@ function draw(time) {
     }
     ctx.globalAlpha = 1;
   }
-  if (status === 'result' && rage >= 1) { ctx.fillStyle = '#a51c2440'; ctx.fillRect(0, 0, w, h); }
+
+}
+
+function drawFinale() {
+  const t = finaleTime, beat = attackBeat(t, victims.length);
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  ctx.save();
+  if (!reduced && t > .65 && t < 1.7) ctx.translate(Math.sin(t * 110) * 3, Math.cos(t * 95) * 2);
+  for (let i = 0; i < victims.length; i++) {
+    if (t >= .65 && (i < beat.index || i === beat.index && beat.phase > .5)) continue;
+    const v = victims[i];
+    ctx.save();
+    if (t >= .65 && i === beat.index) {
+      ctx.translate(v.x * w, v.y * h); ctx.scale(1 - beat.phase, 1 - beat.phase); ctx.translate(-v.x * w, -v.y * h);
+    }
+    drawOrb(v); ctx.globalAlpha = 1;
+    // Panic overlay is independent of the shared sheep model.
+    for (const dx of [-8, 8]) { ellipse(v.x*w+dx,v.y*h-8,6,8,'#fff9e8'); ellipse(v.x*w+dx,v.y*h-8,2,5,'#182839'); }
+    ellipse(v.x*w,v.y*h+11,4,6,'#182839');
+    ctx.restore();
+  }
+  let x = w * .5, y = h * .5;
+  const victim = victims[beat.index];
+  if (t >= .65 && t < 1.7 && victim) { x = victim.x * w; y = victim.y * h + 40; }
+  const mouth = t < .65 ? 0 : t < 1.7 ? Math.sin(beat.phase * Math.PI) : Math.max(0, Math.sin((t-1.7)*24)) * .3;
+  if(t < .16) drawWolf(visualTime);
+  else drawHunter(ctx,x,y - Math.min(1,t/.65)*16,Math.min(w/490,h/650,1.1),{
+    mouth, lookUp: t >= .5, look: t < .35 ? -5 : t < .5 ? 5 : 0,
+    gulp: t > 1.75 ? Math.max(0,Math.sin((t-1.75)/.45*Math.PI)) : 0, bloody: t > .85,
+  });
+  if(t>.65 && t<1.7 && !reduced) {
+    for(let i=0;i<16;i++) {
+      const angle=i*2.4, dist=beat.phase*95;
+      ellipse(x+Math.cos(angle)*dist,y-30+Math.sin(angle)*dist+beat.phase*25,2+i%3,3+i%4,i%3?'#aa294c':'#eee8d6');
+    }
+  }
+  ctx.fillStyle='#edc7ba';ctx.textAlign='center';ctx.font="600 15px 'Space Grotesk',sans-serif";
+  ctx.fillText(t < .65 ? '…oh, no.' : t < 1.7 ? 'SWEET DREAMS.' : 'GULP.',w*.5,h*.25);
+  ctx.restore();
 }
 
 function drawOrb(orb) {
@@ -308,6 +357,12 @@ function frame(t) {
     accumulator += dt;
     while (accumulator >= FIXED_STEP && status === 'playing') { tick(FIXED_STEP); accumulator -= FIXED_STEP; }
     if (status === 'playing') { update(); sounds.updateMusic(slowArithmetic(orbs)); }
+  }
+  if (status === 'finale') {
+    finaleTime += dt;
+    const beat = attackBeat(finaleTime, victims.length);
+    if (finaleTime > .65 && finaleTime < 1.7 && beat.index !== biteIndex) { biteIndex = beat.index; sounds.bite(); }
+    if (finaleTime >= FINALE_DURATION) showResult();
   }
   draw(visualTime); requestAnimationFrame(frame);
 }

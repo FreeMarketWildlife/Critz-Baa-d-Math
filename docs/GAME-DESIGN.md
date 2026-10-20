@@ -8,7 +8,7 @@ A wolf counts sheep to sleep. Losing count wakes it and ends in a ravenous, bloo
 
 - Start total and player count at zero. Each crossing of the central line applies exactly one operation, in order.
 - White +1; red −1; proposed gold ×2 and blue ÷2. Both symbol and color communicate meaning.
-- All modes use active-time unlocks: 0–15 seconds only +1; at 15 seconds add −1; at 30 seconds add occasional ×2; at 60 seconds add ÷2. Previous operations remain in the mix. Unlocks govern launches; operations still apply on their center crossing. Pause freezes progression. The 60-second demo finishes before division launches can cross.
+- All modes use active-time unlocks: 0–15 seconds only +1; at 15 seconds add −1; at 30 seconds add occasional ×2; at 60 seconds add ÷2. Previous operations remain in the mix. Unlocks govern launches; operations still apply on their center crossing. Pause freezes progression. All four operations can appear in survival once their unlock time is reached.
 - Generate ÷2 only for nonzero even totals, including negative totals. Offer ×2 only for absolute totals 2–40. Symbol and color both identify an operation; labels stay upright while the bodies tumble.
 - Launches alternate sides most of the time, with occasional repeats. Every flight uses a constant downward acceleration, horizontal momentum, initial upward velocity, and independent angular velocity. Simulation runs at a fixed 120 Hz. Normalized world coordinates keep the action framed across screen sizes.
 - Standard ±1 sheep reach the center 0.8 seconds after launch. Larger jumps get max(0.8, abs(change)/7 + 0.7) seconds of preview time. Velocity and gravity are adjusted to keep the same on-screen arc. Subsequent launches wait when necessary, preserving crossing order. Every sheep counts once.
@@ -19,12 +19,12 @@ A wolf counts sheep to sleep. Losing count wakes it and ends in a ravenous, bloo
 - Rage is communicated by screen redness and the existing wolf reactions; there is no rage bar.
 - Tolerance starts at 10 and increases by one every 25 sheep, capped at 16. Rage is clamped to 0–1; 1 ends the run. Difficulty and seven-taps-per-second budgeting are provisional playtest values, not a universal accessibility guarantee.
 - Crossing sparks, a flashing center gate, directional tap light/ripples, counter bounce, and short optional launch/count sounds provide feedback without revealing the answer.
-- Night one lasts 180 active seconds; quick dream 60; endless has no finish time. Pausing freezes simulation; backgrounding pauses automatically.
-- Perfect means reaching the next incoming sheep’s resulting total before its center crossing, then holding that total through the crossing. Only the next sheep to cross is eligible, so overlapping sheep cannot be scored out of order. Each perfect crossing calms rage by 0.22 (clamped at zero), adds one to the perfect count, and shows a brief chime/sparkle. No numeric score multiplier is introduced by this mechanic. The end perfect percentage is floor(perfect crossings / crossed sheep × 100), so only an all-perfect run displays 100%. In campaign modes, surviving stars use this ratio: 3 for 100%, 2 for at least 80%, otherwise 1. Saved ratings use a new version key.
+- The combined release exposes endless survival from the main menu. Pausing freezes simulation; backgrounding pauses automatically. Previous campaign/quick-dream menu entries are not exposed in this release.
+- Perfect means reaching the next incoming sheep’s resulting total before its center crossing, then holding that total through the crossing. Only the next sheep to cross is eligible, so overlapping sheep cannot be scored out of order. Each perfect crossing calms rage by 0.22 (clamped at zero), adds one to the perfect count, and shows a brief chime/sparkle. No numeric score multiplier is introduced by this mechanic. The end perfect percentage is floor(perfect crossings / crossed sheep × 100), so only an all-perfect run displays 100%. The survival scorecard displays the perfect percentage and counts directly; there is no win/star finish in endless survival.
 
 ## Visual boundary
 
-Sheep are drawn procedurally in canvas. The prototype uses night scenery and a red failure treatment. During play a procedural canvas wolf sleeps at the screen center, breathes, emits drifting Zs, twitches its ears as rage rises, and opens an eye near waking. Sheep now have fluffy bodies and faces; the intended graphic game-over scene is not implemented. The campaign currently contains one playable night; no invented story or level map.
+Sheep are drawn procedurally in canvas. The prototype uses night scenery and a red failure treatment. During play a procedural canvas wolf sleeps at the screen center, breathes, emits drifting Zs, twitches its ears as rage rises, and opens an eye near waking. Sheep now have fluffy bodies and faces; the combined release includes a short stylized wolf attack/eating finale followed by a scorecard. No campaign map or invented story is included.
 
 ## Phone presentation and sound
 
@@ -46,3 +46,7 @@ Sheep are drawn procedurally in canvas. The prototype uses night scenery and a r
 - Every tap, ordinary crossing chime, and perfect chime consumes one step of the same C-major phrase. Perfect crossings use a longer, softly sparkling voice and skip the normal crossing chime, avoiding duplicate advancement or a competing fixed chord.
 - Counted credit is latched to a specific sheep when its resulting total is reached. The next incoming sheep or the most recent crossed sheep may be credited while still onscreen. The new delighted expression, celebratory kicks, soft halo, and little sparkles persist until despawn; crying sheep stop crying and angry sheep lose their frown. Sheep color, operation labels, flight direction, and perfect timing stay unchanged.
 - Soundtrack position survives pause/resume. Replay resets the score; mute retains its existing saved preference. Browser-generated WAV preview and art review pages use the exact runtime score and renderer.
+
+## Combined end screen
+
+At maximum rage, a 2.2-second finale freezes the visible flock, wakes the wolf, runs through bite beats, and finishes with a gulp. Reduced-motion mode removes the camera shake. The scorecard shows sheep passed, perfect counts/percentage, peak running math total, and active survival time. Dream score is sheep × 100 + perfects × 50 + floor(seconds) × 10. Play Again resets the run and music; Go Back to Sleep returns to the menu.

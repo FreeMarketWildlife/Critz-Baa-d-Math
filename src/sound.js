@@ -115,6 +115,11 @@ export class DreamSounds {
     this.lastWarning = c.currentTime;
     this.note(87, .16, 0, 'sine', .13, 70); this.note(78, .2, .22, 'sine', .1, 60);
   }
+  bite() {
+    this.note(130, .12, 0, 'sawtooth', .13, 35);
+    this.note(310, .07, .035, 'triangle', .1, 90);
+    this.note(75, .17, .1, 'sine', .15, 38);
+  }
   finish(win) {
     this.stopMusic();
     const notes = win ? [523, 659, 784, 1047] : [294, 247, 196, 98];

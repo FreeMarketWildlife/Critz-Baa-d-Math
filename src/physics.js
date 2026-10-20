@@ -1,17 +1,17 @@
-// World units are viewport widths/heights. A fixed crossing time preserves operation
+// World units are viewport widths/heights. Ordered crossing times preserve operation
 // order while launch point, gravity, height, side, and angular velocity vary.
 export const CROSSING_TIME = .8;
 export const FIXED_STEP = 1 / 120;
 
-export function launchFlight(side, random = Math.random) {
+export function launchFlight(side, random = Math.random, crossingTime = CROSSING_TIME) {
   const x = side < 0 ? .08 + random() * .16 : .92 - random() * .16;
   const y = 1.09;
-  const gravity = 1.75 + random() * .65;
+  const gravity = (1.75 + random() * .65) * (CROSSING_TIME / crossingTime) ** 2;
   const crossingY = .34 + random() * .15;
   return {
-    x, y, vx: (.5 - x) / CROSSING_TIME,
-    vy: (crossingY - y - .5 * gravity * CROSSING_TIME ** 2) / CROSSING_TIME,
-    gravity, age: 0, angle: (random() - .5) * .5,
+    x, y, vx: (.5 - x) / crossingTime,
+    vy: (crossingY - y - .5 * gravity * crossingTime ** 2) / crossingTime,
+    gravity, crossingTime, age: 0, angle: (random() - .5) * .5,
     spin: (random() - .5) * 2.2, crossed: false, trail: [],
   };
 }
@@ -23,7 +23,12 @@ export function advanceFlight(body, dt) {
   body.vy += body.gravity * dt;
   body.age += dt;
   body.angle += body.spin * dt;
-  return oldAge < CROSSING_TIME && body.age >= CROSSING_TIME;
+  return oldAge < body.crossingTime && body.age >= body.crossingTime;
 }
 
-export const flightIsGone = body => body.age > CROSSING_TIME && body.y > 1.18;
+export const flightIsGone = body => body.age > body.crossingTime && body.y > 1.18;
+
+// Extra preview time for a large jump; subsequent launches wait so crossings
+// remain ordered. Standard ±1 sheep keep the original snappy .8-second lead-in.
+export const previewTime = change => Math.abs(change) <= 1 ? CROSSING_TIME : Math.max(CROSSING_TIME, Math.abs(change) / 7 + .7);
+export const launchGap = (spacing, crossingTime) => Math.max(spacing, crossingTime - CROSSING_TIME + .52);

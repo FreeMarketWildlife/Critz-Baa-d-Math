@@ -1,6 +1,7 @@
-import { apply, tolerance, chooseOperation, interval, catchUpGrace, starsFor, stepRage, countColor } from './rules.js';
+import { drawSheep } from './sheep.js';
+import { apply, tolerance, chooseOperation, interval, catchUpGrace, starsFor, stepRage, countColor, observeAnticipation, isPerfectCrossing, calmForPerfect, perfectPercent, countingError } from './rules.js';
 import { DreamSounds } from './sound.js';
-import { launchFlight, advanceFlight, flightIsGone, FIXED_STEP } from './physics.js';
+import { launchFlight, advanceFlight, flightIsGone, FIXED_STEP, previewTime, launchGap } from './physics.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('night'), ctx = canvas.getContext('2d');
@@ -10,7 +11,8 @@ const stars = Array.from({ length: 130 }, () => ({
 }));
 let w, h, dpr;
 let mode = 'campaign', status = 'menu', count = 0, target = 0, plannedTarget = 0;
-let n = 0, launched = 0, elapsed = 0, rage = 0, green = 0, assessed = 0;
+let n = 0, launched = 0, elapsed = 0, rage = 0;
+let perfectHits = 0, perfectChain = 0, perfectFlash = 0;
 let next = .45, grace = 0, orbs = [], particles = [], rings = [], lastSide = 1;
 const sounds = new DreamSounds();
 let previous = performance.now(), lastOp = -10;
@@ -32,7 +34,8 @@ function screens(id) {
 
 function begin(m) {
   mode = m; status = 'playing';
-  count = target = plannedTarget = n = launched = elapsed = rage = green = assessed = 0;
+  count = target = plannedTarget = n = launched = elapsed = rage = 0;
+  perfectHits = perfectChain = perfectFlash = 0;
   next = .45; grace = 0; accumulator = 0; orbs = []; particles = []; rings = [];
   lastOp = -10; countKick = crossingGlow = tapGlow = 0;
   $('modeLabel').textContent = m === 'campaign' ? 'NIGHT ONE' : m === 'demo' ? 'QUICK DREAM' : 'ENDLESS';
@@ -40,15 +43,19 @@ function begin(m) {
   screens('play'); update();
 }
 
+function nextSheep() { return orbs.find(orb => !orb.crossed); }
+function readyAhead() { const sheep = nextSheep(); return sheep && count === sheep.result; }
 function update() {
   const duration = mode === 'demo' ? 60 : 180;
   const seconds = mode === 'endless' ? Math.floor(elapsed) : Math.ceil(Math.max(0, duration - elapsed));
   $('time').textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   $('count').textContent = count;
-  $('count').style.color = countColor(count, target);
+  $('count').style.color = countColor(count, readyAhead() ? count : target);
   $('count').style.transform = `scale(${1 + countKick * .08})`;
   $('sheep').textContent = n;
   $('state').textContent = rage > .7 ? 'WAKING UP' : rage > .3 ? 'RESTLESS' : 'SOUND ASLEEP';
+  $('perfect').textContent = perfectFlash > .1 ? `✧ PERFECT${perfectChain > 1 ? ' ×' + perfectChain : ''}` : readyAhead() ? '✧ READY' : '';
+  $('perfect').style.opacity = perfectFlash > .1 || readyAhead() ? 1 : 0;
   $('feedback').textContent = rage > .7 ? 'The dream is slipping…' : rage > .3 ? 'Find your rhythm.' : 'Keep the dream alive.';
   $('danger').style.opacity = rage * (.65 + .2 * Math.sin(visualTime * (4 + rage * 5)));
   $('progress').style.width = mode === 'endless' ? '0' : `${Math.min(100, elapsed / duration * 100)}%`;
@@ -61,14 +68,14 @@ function update() {
 
 function finish(win) {
   status = 'result'; screens('result');
-  const accuracy = assessed ? green / assessed : 1;
-  const award = win ? starsFor(accuracy) : 0;
+  const perfectRatio = n ? perfectHits / n : 0;
+  const award = win ? starsFor(perfectRatio) : 0;
   $('resultTag').textContent = win ? 'THE SUN IS RISING' : 'THE WOLF WOKE UP';
   $('resultTitle').textContent = win ? 'A dream well kept.' : 'Baa’d night.';
   $('stars').textContent = win ? '★'.repeat(award) + '☆'.repeat(3 - award) : '☾';
-  $('resultText').textContent = `${n} sheep · ${Math.floor(elapsed)} seconds · ${Math.round(accuracy * 100)}% in the green. Your count: ${count}. True count: ${target}.`;
+  $('resultText').textContent = `${n} sheep · ${Math.floor(elapsed)} seconds · ${perfectPercent(perfectHits, n)}% perfect (${perfectHits}/${n} early counts). Your count: ${count}. True count: ${target}.`;
   if (win) {
-    try { localStorage.setItem('baad-v2-' + mode, Math.max(award, Number(localStorage.getItem('baad-v2-' + mode) || 0))); } catch {}
+    try { localStorage.setItem('baad-v3-' + mode, Math.max(award, Number(localStorage.getItem('baad-v3-' + mode) || 0))); } catch {}
   }
   sounds.finish(win);
 }
@@ -77,6 +84,7 @@ function tap(delta, event) {
   if (status !== 'playing') return;
   count += delta; countKick = 1; tapGlow = 1; tapSide = delta;
   rings.push({ x: event?.clientX ?? w * (delta > 0 ? .78 : .22), y: event?.clientY ?? h * .78, age: 0 });
+  observeAnticipation(nextSheep(), count);
   sounds.tap(delta); update();
 }
 for (const [id, delta] of [['minus', -1], ['plus', 1]]) {
@@ -92,7 +100,7 @@ $('pause').onclick = pause;
 $('resume').onclick = () => { sounds.unlock(); status = 'playing'; accumulator = 0; screens('play'); };
 function home() {
   status = 'menu'; orbs = []; particles = []; rings = []; screens('menu');
-  try { $('best').textContent = localStorage.getItem('baad-v2-campaign') ? `NIGHT ONE BEST  ${'★'.repeat(Number(localStorage.getItem('baad-v2-campaign')))}` : ''; } catch {}
+  try { $('best').textContent = localStorage.getItem('baad-v3-campaign') ? `NIGHT ONE BEST  ${'★'.repeat(Number(localStorage.getItem('baad-v3-campaign')))}` : ''; } catch {}
 }
 $('home').onclick = home; $('quit').onclick = home; $('again').onclick = () => begin(mode);
 function soundLabel() {
@@ -122,20 +130,28 @@ function burst(x, y, color, size = 1) {
 function tick(dt) {
   elapsed += dt;
   // Plan against every airborne operation, not just those that already crossed.
-  // All flights cross after .8 s, so even dense overlapping launches stay ordered.
+  // Extended previews delay subsequent launches so overlapping crossings stay ordered.
   if (elapsed >= next) {
     const op = chooseOperation(elapsed, plannedTarget);
     const after = apply(plannedTarget, op), changed = after - plannedTarget;
     lastSide = Math.random() < .78 ? -lastSide : lastSide;
-    const flight = { ...launchFlight(lastSide), op };
+    const lead = previewTime(changed);
+    const flight = { ...launchFlight(lastSide, Math.random, lead), op, result: after, readyBeforeCenter: false };
     orbs.push(flight); plannedTarget = after; launched++;
-    next = elapsed + interval(launched, changed);
+    next = elapsed + launchGap(interval(launched, changed), lead);
     burst(flight.x, .98, colors[op], .65);
     sounds.launch(lastSide);
   }
+  observeAnticipation(nextSheep(), count);
   for (const orb of orbs) {
     if (advanceFlight(orb, dt) && !orb.crossed) {
+      const perfect = isPerfectCrossing(orb, count);
       orb.crossed = true;
+      if (perfect) {
+        perfectHits++; perfectChain++; perfectFlash = 1;
+        rage = calmForPerfect(rage); sounds.perfect();
+      } else perfectChain = 0;
+      observeAnticipation(nextSheep(), count);
       const before = target; target = apply(target, orb.op); n++;
       grace = elapsed + catchUpGrace(target - before);
       lastOp = elapsed; crossingGlow = 1;
@@ -154,10 +170,10 @@ function tick(dt) {
   particles = particles.filter(p => p.age < p.life);
   for (const ring of rings) ring.age += dt;
   rings = rings.filter(ring => ring.age < .4);
-  const error = Math.abs(count - target);
-  if (elapsed > grace) { assessed += dt; if (error <= 1) green += dt; }
+  const error = countingError(count, target, nextSheep());
   rage = stepRage(rage, error, tolerance(n), dt, elapsed <= grace);
   if (rage > .7) sounds.warning();
+  perfectFlash = Math.max(0, perfectFlash - dt);
   countKick *= Math.exp(-dt * 13); crossingGlow *= Math.exp(-dt * 7); tapGlow *= Math.exp(-dt * 10);
   if (rage >= 1) finish(false);
   else if (mode !== 'endless' && elapsed >= (mode === 'demo' ? 60 : 180)) finish(true);
@@ -175,7 +191,7 @@ function path(points, fill) {
 function drawWolf(time) {
   const playing = status === 'playing' || status === 'paused';
   const x = playing ? w * .5 : w * (w < 600 ? .70 : .77);
-  const y = playing ? h * .915 : h * .875;
+  const y = playing ? h * .5 : h * .875;
   const scale = Math.min(w / (w < 600 ? 490 : 620), h / 650, 1.18) * (playing ? .8 : 1.12);
   const restless = status === 'result' && rage >= 1 ? 1 : playing ? rage : 0;
   const breathe = Math.sin(time * (2 + restless * 4));
@@ -248,7 +264,9 @@ function draw(time) {
   if (status === 'playing' || status === 'paused') {
     // The center gate flashes on exactly the event that changes the hidden total.
     ctx.strokeStyle = `rgba(196,224,191,${.08 + crossingGlow * .5})`; ctx.lineWidth = 1 + crossingGlow * 2;
-    ctx.beginPath(); ctx.moveTo(w * .5, h * .31); ctx.lineTo(w * .5, h * .56); ctx.stroke();
+    ctx.setLineDash([3, 7]);
+    ctx.beginPath(); ctx.moveTo(w * .5, h * .26); ctx.lineTo(w * .5, h * .43);
+    ctx.moveTo(w * .5, h * .57); ctx.lineTo(w * .5, h * .76); ctx.stroke(); ctx.setLineDash([]);
     for (const orb of orbs) drawOrb(orb);
     for (const p of particles) {
       ctx.globalAlpha = (1 - p.age / p.life) * .7;
@@ -274,56 +292,7 @@ function drawOrb(orb) {
     ctx.moveTo(orb.trail[i - 1].x * w, orb.trail[i - 1].y * h);
     ctx.lineTo(orb.trail[i].x * w, orb.trail[i].y * h); ctx.stroke();
   }
-  ctx.globalAlpha = orb.crossed ? .88 : 1;
-  const x = orb.x * w, y = orb.y * h;
-  ctx.save(); ctx.translate(x, y);
-  // A gentle tumble lets faces stay recognizable while wool and hooves rotate.
-  ctx.rotate(Math.sin(orb.angle) * .32);
-  const face = '#344454', hoof = '#273748';
-  const kick = Math.sin(orb.age * 14) * .1;
-  // Four tiny kicking legs and dark rounded hooves.
-  for (const [lx, ly, angle] of [[-.55, .63, -.15], [.2, .67, .12], [-.25, .6, .2], [.48, .54, -.1]]) {
-    ellipse(lx * r, ly * r, r * .115, r * .3, face, angle + kick);
-    ellipse(lx * r + kick * r, (ly + .22) * r, r * .15, r * .1, hoof);
-  }
-  // Tail and creamy colored wool, shaded underneath and puffed along the rim.
-  ellipse(-r * 1.04, -r * .1, r * .26, r * .22, color, -.4);
-  ctx.shadowColor = color; ctx.shadowBlur = orb.crossed ? 0 : 9;
-  ellipse(-r * .12, 0, r * 1.05, r * .77, color); ctx.shadowBlur = 0;
-  for (let i = 0; i < 12; i++) {
-    const a = i / 12 * Math.PI * 2;
-    ellipse(-r * .12 + Math.cos(a) * r * .88, Math.sin(a) * r * .62, r * .3, r * .27, color);
-  }
-  ellipse(-r * .15, r * .39, r * .74, r * .21, '#26394d13');
-  // Soft curls create wool texture rather than an operation coin.
-  ctx.strokeStyle = '#ffffff65'; ctx.lineWidth = Math.max(1, r * .04);
-  for (const [cx, cy] of [[-.65, -.25], [-.1, -.47], [.32, -.2], [-.62, .23], [.22, .31]]) {
-    ctx.beginPath(); ctx.arc(cx * r, cy * r, r * .13, .2, Math.PI * 1.65); ctx.stroke();
-  }
-  // Floppy ears, a charcoal face, sparkling eyes, blush, and a little smile.
-  ellipse(r * .57, -r * .35, r * .35, r * .15, face, -.55);
-  ellipse(r * 1.19, -r * .28, r * .3, r * .14, face, .6);
-  ellipse(r * .55, -r * .34, r * .19, r * .07, '#d998a0', -.55);
-  ellipse(r * 1.19, -r * .27, r * .16, r * .065, '#d998a0', .6);
-  ellipse(r * .87, -r * .03, r * .44, r * .54, face, -.12);
-  for (const ex of [.71, 1.02]) {
-    ellipse(r * ex, -r * .12, r * .095, r * .125, '#fff9e8');
-    ellipse(r * (ex + .015), -r * .105, r * .051, r * .076, '#172638');
-    ellipse(r * (ex + .035), -r * .14, r * .02, r * .025, '#ffffff');
-  }
-  ellipse(r * .58, r * .14, r * .09, r * .05, '#df99a666');
-  ellipse(r * 1.12, r * .17, r * .08, r * .05, '#df99a666');
-  ellipse(r * .87, r * .16, r * .055, r * .04, '#dfacb4');
-  ctx.strokeStyle = '#b8c6ca'; ctx.lineWidth = r * .035;
-  ctx.beginPath(); ctx.moveTo(r * .87, r * .2); ctx.quadraticCurveTo(r * .84, r * .3, r * .74, r * .25); ctx.stroke();
-  // A wool forelock sits between the ears.
-  for (const [fx, fy] of [[.61, -.49], [.85, -.55], [1.06, -.47]]) ellipse(fx * r, fy * r, r * .18, r * .16, color);
-  ctx.restore();
-  // The arithmetic stays upright on the sheep's side for quick reading.
-  ctx.fillStyle = '#1b2838'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = `700 ${r * .75}px 'Space Grotesk',sans-serif`;
-  ctx.fillText(orb.op, x - r * .2, y + r * .03);
-  ctx.globalAlpha = 1;
+  drawSheep(ctx, orb, orb.x * w, orb.y * h, r, color);
 }
 
 function frame(t) {

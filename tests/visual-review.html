@@ -1,0 +1,6 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sheep personality review</title><style>body{margin:0;background:#0b1225;color:#c8ddd0;font:14px system-ui;text-align:center}h1{font-size:20px;margin:28px 12px 8px}p{font-size:12px;color:#9cadb9}canvas{max-width:100%;height:auto}a{color:#bfdabc}</style><h1>Meet the flock</h1><p>Happy +1 · Angry −1 · Goofy ×2 · Crying ÷2</p><canvas width="800" height="510"></canvas><p><a href="/">Play Baa’d Math →</a></p><script type="module">
+import {drawSheep} from '../src/sheep.js';
+const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d');
+const ops=['+1','−1','×2','÷2'], colors=['#f2efdf','#f58992','#eac47b','#98c7f1'];
+function frame(time){ctx.clearRect(0,0,800,510);for(let row=0;row<2;row++)for(let i=0;i<4;i++){const x=100+i*200,y=115+row*245;drawSheep(ctx,{op:ops[i],vx:row? -1:1,angle:0,age:time/1000,crossed:false},x,y,48,colors[i]);ctx.textAlign='center';ctx.fillStyle='#b4c8c4';ctx.font='13px system-ui';ctx.fillText(`${ops[i]} ${row?'←':'→'}`,x,y+85)}requestAnimationFrame(frame)}requestAnimationFrame(frame);
+</script></html>

@@ -1,7 +1,8 @@
+import { cMajorVoices } from '../src/sound.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { apply, chooseOperation, interval, catchUpGrace, stepRage, starsFor, tolerance, countColor } from '../src/rules.js';
-import { launchFlight, advanceFlight, flightIsGone, CROSSING_TIME, FIXED_STEP } from '../src/physics.js';
+import { apply, chooseOperation, interval, catchUpGrace, stepRage, starsFor, tolerance, countColor, observeAnticipation, isPerfectCrossing, calmForPerfect, perfectPercent, countingError } from '../src/rules.js';
+import { launchFlight, advanceFlight, flightIsGone, CROSSING_TIME, FIXED_STEP, previewTime, launchGap } from '../src/physics.js';
 
 function seeded(seed = 17) {
   return () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
@@ -124,4 +125,79 @@ test('count color interpolates from exact green through 15% yellow to fully inac
   assert.equal(countColor(-85, -100), countColor(85, 100));
   assert.equal(countColor(0, 0), countColor(100, 100));
   assert.equal(countColor(1, 0), countColor(0, 100));
+});
+
+test('perfect requires an early match held through crossing, not a late correction', () => {
+  const flight = { age: .4, crossingTime: .8, result: 12, crossed: false };
+  observeAnticipation(flight, 11); assert.equal(isPerfectCrossing(flight, 12), false);
+  observeAnticipation(flight, 12); assert.equal(isPerfectCrossing(flight, 12), true);
+  assert.equal(isPerfectCrossing(flight, 13), false);
+  const late = { age: .8, crossingTime: .8, result: 12, crossed: false };
+  observeAnticipation(late, 12); assert.equal(isPerfectCrossing(late, 12), false);
+  assert.equal(calmForPerfect(.5), .28); assert.equal(calmForPerfect(.1), 0);
+  assert.equal(perfectPercent(199, 200), 99); assert.equal(perfectPercent(200, 200), 100);
+  assert.equal(perfectPercent(0, 0), 0); assert.equal(starsFor(.999), 2);
+});
+test('C-major tap voicings repeat in a bounded register, including descending taps', () => {
+  const ratios = [0, 2, 4, 5, 7, 9, 11];
+  for (let i = -100; i <= 100; i++) {
+    const voices = cMajorVoices(i), degree = ((i % 7) + 7) % 7;
+    assert.deepEqual(voices, cMajorVoices(i + 7));
+    assert.ok(Math.abs(voices[2].frequency / 261.625565 - 2 ** (ratios[degree] / 12)) < 1e-8);
+    assert.ok(voices.every(v => v.frequency >= 65 && v.frequency < 2000));
+    assert.ok(Math.abs(voices.reduce((sum, v) => sum + v.gain, 0) - 1) < 1e-10);
+  }
+});
+test('large-jump previews cross at the center and cannot be overtaken', () => {
+  const random = seeded(19); let previousCrossing = -1, launchAt = 0;
+  for (const change of [1, 40, 1, -20, 1, 8, -1]) {
+    const lead = previewTime(change), body = launchFlight(1, random, lead);
+    assert.ok(lead >= Math.abs(change) / 7);
+    let crossedAt;
+    while (!flightIsGone(body)) {
+      if (advanceFlight(body, FIXED_STEP)) {
+        crossedAt = launchAt + body.age;
+        assert.ok(Math.abs(body.x - .5) < .006);
+        assert.ok(body.y > .32 && body.y < .51);
+      }
+      assert.ok(body.age < lead * 4);
+    }
+    assert.ok(crossedAt > previousCrossing);
+    previousCrossing = crossedAt; launchAt += launchGap(interval(30, change), lead);
+  }
+});
+
+test('legitimate anticipation is safe but wrong or overshot counts still build rage', () => {
+  assert.equal(countingError(20, 10, { result: 30 }), 0);
+  assert.equal(countingError(31, 10, { result: 30 }), 1);
+  assert.equal(countingError(8, 10, { result: 30 }), 2);
+  assert.equal(countingError(-4, -8, { result: -2 }), 0);
+  assert.equal(countingError(20, 10, undefined), 10);
+});
+test('a predictive seven-tap-per-second player can perfect a full night', () => {
+  for (let seed = 1; seed <= 8; seed++) {
+    const random = seeded(seed); let time = 0, next = .45, planned = 0, target = 0, player = 0;
+    let spawned = 0, crossed = 0, hits = 0, tapAt = 0, previousHead, bodies = [];
+    while (time < 180) {
+      time += FIXED_STEP;
+      if (time >= next) {
+        const op = chooseOperation(time, planned, random), result = apply(planned, op);
+        const lead = previewTime(result - planned);
+        bodies.push({ ...launchFlight(spawned % 2 ? -1 : 1, random, lead), op, result, readyBeforeCenter: false });
+        next = time + launchGap(interval(++spawned, result - planned), lead); planned = result;
+      }
+      const head = bodies.find(b => !b.crossed);
+      if (head !== previousHead) { previousHead = head; tapAt = Math.max(tapAt, time + .12); }
+      const desired = head?.result ?? target;
+      if (time >= tapAt && player !== desired) { player += Math.sign(desired - player); tapAt = time + 1 / 7; }
+      observeAnticipation(head, player);
+      for (const body of bodies) if (advanceFlight(body, FIXED_STEP)) {
+        if (isPerfectCrossing(body, player)) hits++;
+        body.crossed = true; target = apply(target, body.op); crossed++;
+        assert.equal(target, body.result);
+      }
+      bodies = bodies.filter(b => !flightIsGone(b));
+    }
+    assert.ok(crossed > 70); assert.equal(hits, crossed, `seed ${seed}: ${hits}/${crossed}`);
+  }
 });

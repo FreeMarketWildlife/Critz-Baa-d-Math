@@ -19,7 +19,7 @@ export function chooseOperation(elapsed, value, random = Math.random) {
 // Large changes reserve a seven-taps/second catch-up budget before the next crossing.
 export const interval = (n, change) => Math.max(.52, 1.65 - n * .045, Math.abs(change) / 7 + .35);
 export const catchUpGrace = change => .14 + Math.abs(change) / 7;
-export const starsFor = greenRatio => greenRatio >= .97 ? 3 : greenRatio >= .8 ? 2 : 1;
+export const starsFor = perfectRatio => perfectRatio >= 1 ? 3 : perfectRatio >= .8 ? 2 : 1;
 
 export function stepRage(rage, error, limit, dt, grace = false) {
   if (error <= 1) return Math.max(0, rage - dt * .3);
@@ -37,4 +37,22 @@ export function countColor(count, target) {
     ? [green, yellow, error / .15]
     : [yellow, red, (error - .15) / .85];
   return `rgb(${from.map((channel, i) => Math.round(channel + (to[i] - channel) * t)).join(', ')})`;
+}
+
+// Only the next sheep to cross can be anticipated, even with overlapping flights.
+export function observeAnticipation(flight, count) {
+  if (flight && !flight.crossed && flight.age < flight.crossingTime && count === flight.result) {
+    flight.readyBeforeCenter = true;
+  }
+}
+export const isPerfectCrossing = (flight, count) => Boolean(flight.readyBeforeCenter && count === flight.result);
+export const calmForPerfect = rage => Math.max(0, rage - .22);
+export const perfectPercent = (hits, total) => total > 0 ? Math.floor(hits / total * 100) : 0;
+
+// Moving toward the next total is legitimate anticipation, not a counting error.
+// Values outside the current-to-next interval still build rage as usual.
+export function countingError(count, target, incoming) {
+  if (!incoming || incoming.crossed) return Math.abs(count - target);
+  const low = Math.min(target, incoming.result), high = Math.max(target, incoming.result);
+  return Math.max(low - count, count - high, 0);
 }

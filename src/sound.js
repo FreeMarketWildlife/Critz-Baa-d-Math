@@ -1,3 +1,16 @@
+// Diatonic Shepard-style voicing: seven C-major degrees, with octave layers
+// fading around a fixed register. Wraps never drive taps into extreme pitches.
+export function cMajorVoices(step) {
+  const degrees = [0, 2, 4, 5, 7, 9, 11];
+  const semitone = degrees[((step % 7) + 7) % 7];
+  const voices = [-2, -1, 0, 1, 2].map(octave => {
+    const frequency = 261.625565 * 2 ** (octave + semitone / 12);
+    return { frequency, gain: Math.exp(-((Math.log2(frequency / 370) / .8) ** 2)) };
+  });
+  const total = voices.reduce((sum, voice) => sum + voice.gain, 0);
+  return voices.map(voice => ({ ...voice, gain: voice.gain / total }));
+}
+
 // Small synthesized toys: no downloads, audio files, or background music.
 // The context is created/resumed only by a start, resume, or sound-button gesture.
 export class DreamSounds {
@@ -5,6 +18,7 @@ export class DreamSounds {
     this.enabled = true;
     try { this.enabled = localStorage.getItem('baad-sound') !== 'off'; } catch {}
     this.context = null;
+    this.tapStep = 0;
     this.lastBaa = -1;
     this.lastWarning = -1;
   }
@@ -41,10 +55,15 @@ export class DreamSounds {
     osc.connect(gain).connect(this.master); osc.start(start); osc.stop(start + duration + .02);
     osc.onended = () => { osc.disconnect(); gain.disconnect(); };
   }
-  start() { this.unlock(); [392, 494, 587, 784].forEach((n, i) => this.note(n, .26, i * .085, 'sine', .14)); }
+  start() { this.tapStep = 0; this.unlock(); [392, 494, 587, 784].forEach((n, i) => this.note(n, .26, i * .085, 'sine', .14)); }
   tap(direction) {
-    this.note(direction > 0 ? 620 : 440, .065, 0, 'sine', .1, direction > 0 ? 950 : 290);
-    this.note(direction > 0 ? 1240 : 880, .035, .012, 'triangle', .025);
+    const step = direction > 0 ? this.tapStep++ : --this.tapStep;
+    for (const voice of cMajorVoices(step)) {
+      if (voice.gain > .002) this.note(voice.frequency, .18, 0, 'sine', voice.gain * .13);
+    }
+  }
+  perfect() {
+    [523.251, 659.255, 783.991].forEach((frequency, i) => this.note(frequency, .3, i * .035, 'sine', .055));
   }
   launch(side) {
     this.note(side < 0 ? 170 : 195, .13, 0, 'sine', .09, 560);

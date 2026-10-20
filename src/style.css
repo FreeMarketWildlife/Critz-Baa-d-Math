@@ -53,3 +53,5 @@ button{min-height:44px}header{top:max(18px,env(safe-area-inset-top));left:max(5%
   .tapzones button{padding-bottom:max(35px,env(safe-area-inset-bottom));gap:5px}.tapzones b{width:55px;height:48px;font-size:30px}.tapzones span{font-size:8px}.progress{bottom:12px}
   #result,#paused{left:7%;top:54%;width:55%;max-height:calc(100dvh - 90px);overflow-y:auto}h2{font-size:36px;margin:14px 0}.panel>p{font-size:12px}.panel>button{min-height:44px;padding:10px 14px}
 }
+#perfect{position:absolute;top:56%;left:50%;transform:translateX(-50%);font-size:12px;font-weight:600;letter-spacing:2px;color:#e5d69d;pointer-events:none;white-space:nowrap;transition:opacity .12s}
+@media(max-height:500px) and (max-width:1000px){#perfect{top:52%;font-size:9px}#operation{top:39%}}

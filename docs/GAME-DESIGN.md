@@ -8,10 +8,10 @@ A wolf counts sheep to sleep. Losing count wakes it and ends in a ravenous, bloo
 
 - Start total and player count at zero. Each crossing of the central line applies exactly one operation, in order.
 - White +1; red −1; proposed gold ×2 and blue ÷2. Both symbol and color communicate meaning.
-- All modes use active-time unlocks: 0–15 seconds only +1; at 15 seconds add −1; at 30 seconds add occasional ×2; at 60 seconds add ÷2. Previous operations remain in the mix. Unlocks govern launches; operations still apply on the center crossing 0.8 seconds later. Pause freezes progression. The 60-second demo finishes before division launches can cross.
+- All modes use active-time unlocks: 0–15 seconds only +1; at 15 seconds add −1; at 30 seconds add occasional ×2; at 60 seconds add ÷2. Previous operations remain in the mix. Unlocks govern launches; operations still apply on their center crossing. Pause freezes progression. The 60-second demo finishes before division launches can cross.
 - Generate ÷2 only for nonzero even totals, including negative totals. Offer ×2 only for absolute totals 2–40. Symbol and color both identify an operation; labels stay upright while the bodies tumble.
 - Launches alternate sides most of the time, with occasional repeats. Every flight uses a constant downward acceleration, horizontal momentum, initial upward velocity, and independent angular velocity. Simulation runs at a fixed 120 Hz. Normalized world coordinates keep the action framed across screen sizes.
-- Each flight reaches the central counting gate 0.8 seconds after launch. Launch height, point, gravity, and spin vary; flights then descend below the screen. Crossing time stays consistent so overlapping operations cannot overtake each other. Each crossing is applied exactly once.
+- Standard ±1 sheep reach the center 0.8 seconds after launch. Larger jumps get max(0.8, abs(change)/7 + 0.7) seconds of preview time. Velocity and gravity are adjusted to keep the same on-screen arc. Subsequent launches wait when necessary, preserving crossing order. Every sheep counts once.
 - Operations are generated against the projected total after all airborne sheep. This prevents a queued division from becoming fractional when preceding sheep cross.
 - Base spacing drops from 1.65 seconds to 0.52 seconds over the first 26 launches. Multiple sheep can be airborne together. Large operations reserve at least abs(change)/7 + 0.35 seconds until the next crossing, allowing seven taps per second plus a small margin.
 - Catch-up grace is 0.14 + abs(change)/7 seconds, always shorter than the next crossing interval. Grace holds rage steady for errors; it does not heal missed counts. Within ±1, rage recovers at 0.3/second. Otherwise rage grows from 0.09 toward 0.47/second below tolerance and at 0.8/second at or above tolerance.
@@ -20,11 +20,11 @@ A wolf counts sheep to sleep. Losing count wakes it and ends in a ravenous, bloo
 - Tolerance starts at 10 and increases by one every 25 sheep, capped at 16. Rage is clamped to 0–1; 1 ends the run. Difficulty and seven-taps-per-second budgeting are provisional playtest values, not a universal accessibility guarantee.
 - Crossing sparks, a flashing center gate, directional tap light/ripples, counter bounce, and short optional launch/count sounds provide feedback without revealing the answer.
 - Night one lasts 180 active seconds; quick dream 60; endless has no finish time. Pausing freezes simulation; backgrounding pauses automatically.
-- Stars use time within ±1, excluding catch-up grace: 3 for at least 97%, 2 for at least 80%, 1 for surviving. A perfect green run earns 3. Failed runs earn none. Browser-local best ratings are saved separately from the slower original prototype.
+- Perfect means reaching the next incoming sheep’s resulting total before its center crossing, then holding that total through the crossing. Only the next sheep to cross is eligible, so overlapping sheep cannot be scored out of order. Each perfect crossing calms rage by 0.22 (clamped at zero), adds one to the perfect count, and shows a brief chime/sparkle. No numeric score multiplier is introduced by this mechanic. The end perfect percentage is floor(perfect crossings / crossed sheep × 100), so only an all-perfect run displays 100%. In campaign modes, surviving stars use this ratio: 3 for 100%, 2 for at least 80%, otherwise 1. Saved ratings use a new version key.
 
 ## Visual boundary
 
-Sheep are drawn procedurally in canvas. The prototype uses night scenery and a red failure treatment. A procedural canvas wolf sleeps at the bottom, breathes, emits drifting Zs, twitches its ears as rage rises, and opens an eye near waking. Sheep now have fluffy bodies and faces; the intended graphic game-over scene is not implemented. The campaign currently contains one playable night; no invented story or level map.
+Sheep are drawn procedurally in canvas. The prototype uses night scenery and a red failure treatment. During play a procedural canvas wolf sleeps at the screen center, breathes, emits drifting Zs, twitches its ears as rage rises, and opens an eye near waking. Sheep now have fluffy bodies and faces; the intended graphic game-over scene is not implemented. The campaign currently contains one playable night; no invented story or level map.
 
 ## Phone presentation and sound
 
@@ -32,3 +32,9 @@ Sheep are drawn procedurally in canvas. The prototype uses night scenery and a r
 - Sheep now have colored fluffy wool, curls, charcoal faces, floppy pink-lined ears, shiny eyes, blush, smiles, and kicking legs. Upright high-contrast math symbols stay on their sides while their bodies gently tumble.
 - Web Audio synthesizes soft tap pops, rising launch sounds, operation chimes, occasional cartoon bleats, a warning heartbeat, and end jingles. A master compressor bounds overlapping voices. Sound is enabled by default, unlocked on a play gesture, and can be muted with a saved preference. Pausing/backgrounding suspends the audio context; resume uses a user gesture.
 - No accounts, trackers, downloaded audio, final external art assets, or changes to the 15/30/60-second operation unlocks are introduced.
+
+## Individual personalities and anticipation
+
+- +1 retains the happy base sheep; −1 has angry brows and a frown; ×2 has uneven eyes, a wagging tongue, and a wild tuft; ÷2 has worried brows, a pout, and continuously falling tears. Bodies mirror with horizontal velocity while arithmetic symbols remain upright and unmirrored. The shared renderer is reviewed at `/tests/visual-review.html`.
+- Taps move through C, D, E, F, G, A, B and wrap back to C. Left taps reverse the sequence. Soft octave layers fade around a fixed register for a Shepard-style looping ascent; frequencies stay bounded and the sequence resets for each new dream.
+- A correct anticipated total turns the count green and displays READY. Movement within the interval between the current total and the next total does not build rage. Wrong-direction or overshot values still do. The stored total continues to change only at center crossings.

@@ -6,7 +6,7 @@ A counting game about a very fragile night's sleep. Browser MVP, with fluffy ani
 
 Run `npm run dev` and open http://localhost:4187. Run `npm test` for the math and fairness checks.
 
-Tap the left half to subtract one; tap the right half to add one. Arrow keys or A/D also work. Operations apply when a circle crosses the center line. Keep the running total in your head; the true answer is revealed only after a run. Escape or Space pauses; switching tabs automatically pauses.
+Tap the left half to subtract one; tap the right half to add one. Arrow keys or A/D also work. Operations apply when a sheep crosses the center line. Keep the running total in your head; the true answer is revealed only after a run. For a perfect count, reach the next sheep’s resulting total before it crosses the center, and hold it through the crossing. Perfect crossings calm the wolf and count toward the final perfect percentage. Escape or Space pauses; switching tabs automatically pauses.
 
 - **Night one:** three minutes, +1 only for 15 seconds, then −1 joins, occasional ×2 joins at 30 seconds, and ÷2 joins at 60 seconds.
 - **Quick dream:** a one-minute preview with the same gradual unlocks; division is introduced in the longer modes.
@@ -20,7 +20,7 @@ See [game design](docs/GAME-DESIGN.md) and [roadmap](docs/ROADMAP.md).
 
 ## Files
 
-`index.html`: interface; `src/style.css`: responsive presentation; `src/game.js`: animation, input, lifecycle; `src/rules.js`: arithmetic and balancing; `src/physics.js`: ballistic motion; `src/sound.js`: synthesized sound effects; `tests/`: rule regression checks; `docs/`: design and next steps.
+`index.html`: interface; `src/style.css`: responsive presentation; `src/game.js`: animation, input, lifecycle; `src/rules.js`: arithmetic and balancing; `src/physics.js`: ballistic motion; `src/sound.js`: synthesized sound effects; `src/sheep.js`: shared directional personality renderer; `tests/`: rule regression checks; `docs/`: design and next steps.
 
 ## Phone and sound polish
 
@@ -35,3 +35,9 @@ Play the immutable release at https://rawcdn.githack.com/FreeMarketWildlife/Crit
 GitHub Pages deploys successfully, but its default URL inherits the organization’s existing `freemarketwildlife.com` domain and currently redirects to a 404. The CDN link serves the same public game files without changing organization DNS or unrelated hosting.
 Every push to `main` runs the rule tests before deploying to GitHub Pages.
 Only `index.html` and `src/` are included in the public site artifact.
+
+## Personality and musical counting
+
+The base +1 sheep stays happy. Red −1 sheep are angry, gold ×2 sheep are goofy, and blue ÷2 sheep cry. All face their flight direction without mirroring the math symbols. Taps cycle through C major with softly blended octave layers instead of rising forever. The wolf sits at the exact screen-center anchor during play.
+
+Run the art review at http://localhost:4187/tests/visual-review.html to inspect every personality facing both directions. Rule tests include anticipation timing, perfect percentages, bounded C-major notes, crossing order, and predictive seven-taps-per-second full-night simulations.

@@ -27,3 +27,9 @@ See [game design](docs/GAME-DESIGN.md) and [roadmap](docs/ROADMAP.md).
 Play uses full-screen left/right touch zones, large thumb targets, safe-area spacing, dynamic viewport sizing, and dedicated portrait/small-phone/landscape layouts. The menu scrolls when vertical space is tight. Fluffy canvas sheep have faces, wool curls, kicking hooves, and upright operation labels; the ballistic simulation and math unlock times are unchanged.
 
 Synthesized pops, launch whistles, chimes, occasional cartoon bleats, danger heartbeats, and win/loss jingles run through Web Audio. Sound starts with the first play gesture; the header mute toggle is saved locally. Audio suspends while paused or backgrounded and resumes on a user gesture. No audio downloads or external sound services are needed. Physical iPhone/Android speaker and browser testing remains a device check; desktop phone-sized previews do not establish that coverage.
+
+## Public release
+
+Play at https://freemarketwildlife.github.io/Critz-Baa-d-Math/.
+Every push to `main` runs the rule tests before deploying to GitHub Pages.
+Only `index.html` and `src/` are included in the public site artifact.

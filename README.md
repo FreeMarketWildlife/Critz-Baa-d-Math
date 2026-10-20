@@ -36,7 +36,7 @@ Only `index.html` and `src/` are included in the public site artifact.
 
 ## Personality and musical counting
 
-The base +1 sheep stays happy. Red −1 sheep are angry, gold ×2 sheep are goofy, and blue ÷2 sheep cry. All face their flight direction without mirroring the math symbols. Taps cycle through C major with softly blended octave layers instead of rising forever. The wolf sits at the exact screen-center anchor during play.
+The base +1 sheep stays happy. Red −1 sheep are angry, gold ×2 sheep are goofy, and blue ÷2 sheep cry. All face their flight direction without mirroring the math symbols. Taps cycle through C major with softly blended octave layers instead of rising forever. The wolf sleeps on the grass below the counting area, then drifts upward after ten seconds without rage gain.
 
 Run the art review at http://localhost:4187/tests/visual-review.html to inspect every personality facing both directions. Rule tests include anticipation timing, perfect percentages, bounded C-major notes, crossing order, and predictive seven-taps-per-second full-night simulations.
 
@@ -52,10 +52,19 @@ Open `/tests/audio-review.html` to render an eighteen-second soundtrack sample t
 
 ## Combined survival release
 
-All runtime changes are included: phone controls, directional sheep personalities and persistent counted smiles, centered sleeping wolf, timed arithmetic unlocks, extended large-operation previews, continuous musical counting, the filtered Moonwool soundtrack, and the wolf wake/eating finale. The game ends with a scorecard and Play Again / Go Back to Sleep actions. Dream score is 100 per sheep passed + 50 per perfect + 10 per whole second survived.
+All runtime changes are included: phone controls, directional sheep personalities and persistent counted smiles, sleeping wolf, timed arithmetic unlocks, extended large-operation previews, continuous musical counting, the filtered Moonwool soundtrack, and the wolf wake/eating finale. The game ends with a scorecard and Play Again / Go Back to Sleep actions. Dream score is 100 per sheep passed + 50 per perfect + 10 per whole second survived.
 
 The combined public release also includes compact phone scorecards with paired 44px-or-larger restart/navigation controls.
 
 ## Entry counting and gentler feedback
 
 Accuracy follows the latest visible sheep immediately, including overlapping flights. Correct holds on an earlier sheep are preserved when a new sheep enters before its center crossing. The count eases through green, orange, yellow, and red over 0.45 seconds, with a ten-count minimum error scale so small totals do not jump straight to red. Halfway crossings have no ordinary chime or bleat; perfects retain the same C-major note sequence with a stronger, longer octave shimmer.
+
+
+## Sleeping ascent
+
+Ten continuous seconds without building rage starts the sleeping wolf levitating. There is no height ceiling: the camera follows him from the grass into a starfield. The sky uses the Libriam Globe’s orange dwarf sun, gold-ringed Kronos, complementary blue-ringed Zuhal, small Moon, and thin atmospheric limb. Celestial distances are compressed for this dream view; it is not a scale orbital map or new Dragex lore.
+
+Actual rage gain breaks the calm streak and starts a gravity-driven fall. Correcting the count cannot cancel that fall. Ordinary rage accumulation waits until landing, so the wolf can fall all the way from space; impact adds 0.5 to internal rage once, capped at 1. Another ten calm seconds on the ground can start a fresh ascent. Pause freezes the ascent and fall; restart clears both. The rage bar, its DOM elements, and its CSS are removed; existing redness and wolf behavior provide feedback.
+
+`src/levitation.js` owns the streak, uncapped altitude, gravity and impact; `src/dream-sky.js` renders the grass and celestial background. `npm test` includes streak/reset/landing regressions. With Playwright available, run `node tests/levitation-browser.cjs` against the dev server for phone, desktop and landscape checks, including pause, landing, finale and replay.

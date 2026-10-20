@@ -1,3 +1,5 @@
+import { createLevitation, stepLevitation, cameraHeight } from './levitation.js';
+import { drawDreamSky, drawGrass } from './dream-sky.js';
 import { slowArithmetic } from './music.js';
 import { FINALE_DURATION, runStats, attackBeat, drawHunter } from './finale.js';
 import { drawSheep } from './sheep.js';
@@ -14,6 +16,7 @@ const stars = Array.from({ length: 130 }, () => ({
 let w, h, dpr;
 let mode = 'endless', status = 'menu', count = 0, target = 0, plannedTarget = 0;
 let peak = 0, finaleTime = 0, victims = [], biteIndex = -1;
+let levitation = createLevitation();
 let n = 0, launched = 0, elapsed = 0, rage = 0;
 let perfectHits = 0, perfectChain = 0, perfectFlash = 0;
 let next = .45, grace = 0, orbs = [], particles = [], rings = [], lastSide = 1;
@@ -39,6 +42,7 @@ function begin(m) {
   mode = 'endless'; m = mode; status = 'playing';
   peak = 0; finaleTime = 0; victims = []; biteIndex = -1;
   count = target = plannedTarget = n = launched = elapsed = rage = 0;
+  levitation = createLevitation();
   perfectHits = perfectChain = perfectFlash = 0;
   next = .45; grace = 0; accumulator = 0; orbs = []; particles = []; rings = [];
   lastOp = -10; countKick = crossingGlow = tapGlow = 0;
@@ -57,12 +61,11 @@ function update() {
   $('count').style.color = countColor(count, target);
   $('count').style.transform = `scale(${1 + countKick * .08})`;
   $('sheep').textContent = n;
-  $('state').textContent = rage > .7 ? 'WAKING UP' : rage > .3 ? 'RESTLESS' : 'SOUND ASLEEP';
+  $('state').textContent = levitation.falling ? 'FALLING' : levitation.height > 0 ? 'DREAMING HIGHER' : rage > .7 ? 'WAKING UP' : rage > .3 ? 'RESTLESS' : 'SOUND ASLEEP';
   $('perfect').textContent = perfectFlash > .1 ? `✧ PERFECT${perfectChain > 1 ? ' ×' + perfectChain : ''}` : readyAhead() ? '✧ READY' : '';
   $('perfect').style.opacity = perfectFlash > .1 || readyAhead() ? 1 : 0;
   $('feedback').textContent = rage > .7 ? 'The dream is slipping…' : rage > .3 ? 'Find your rhythm.' : 'Keep the dream alive.';
   $('danger').style.opacity = rage * (.65 + .2 * Math.sin(visualTime * (4 + rage * 5)));
-  $('progress').style.width = `${rage * 100}%`;
   $('operation').style.opacity = Math.max(0, 1 - (elapsed - lastOp) / .65);
   $('operation').style.transform = `translate(-50%, ${-(elapsed - lastOp) * 12}px)`;
   $('pace').textContent = elapsed < 15 ? 'SETTLE IN' : elapsed < 30 ? 'DREAM DEEPER' : elapsed < 60 ? 'QUICKENING' : 'FEVER DREAM';
@@ -111,6 +114,7 @@ $('pause').onclick = pause;
 $('resume').onclick = () => { sounds.resume(); status = 'playing'; accumulator = 0; screens('play'); };
 function home() {
   sounds.stopMusic();
+  levitation = createLevitation();
   status = 'menu'; orbs = []; particles = []; rings = []; screens('menu');
   $('best').textContent = '';
 }
@@ -195,7 +199,11 @@ function tick(dt) {
   for (const ring of rings) ring.age += dt;
   rings = rings.filter(ring => ring.age < .4);
   const error = countingError(count, target);
-  rage = stepRage(rage, error, tolerance(n), dt, elapsed <= grace);
+  const buildingRage = stepRage(0, error, tolerance(n), dt, elapsed <= grace) > 0;
+  const landingRage = stepLevitation(levitation, dt, buildingRage);
+  // Finish the fall before the impact can wake him. Counting still continues.
+  if (!levitation.falling) rage = stepRage(rage, error, tolerance(n), dt, elapsed <= grace);
+  rage = Math.min(1, rage + landingRage);
   if (rage > .7) sounds.warning();
   perfectFlash = Math.max(0, perfectFlash - dt);
   countKick *= Math.exp(-dt * 13); crossingGlow *= Math.exp(-dt * 7); tapGlow *= Math.exp(-dt * 10);
@@ -213,14 +221,15 @@ function path(points, fill) {
 }
 
 function drawWolf(time) {
-  const playing = status === 'playing' || status === 'paused';
-  const x = playing ? w * .5 : w * (w < 600 ? .70 : .77);
-  const y = playing ? h * .5 : h * .875;
+  const playing = ['playing', 'paused', 'finale'].includes(status);
+  const drift = Math.min(1, levitation.height / .32) * .24;
+  const x = playing ? w * (.5 + drift) : w * (w < 600 ? .70 : .77);
   const scale = Math.min(w / (w < 600 ? 490 : 620), h / 650, 1.18) * (playing ? .8 : 1.12);
-  const restless = status === 'result' && rage >= 1 ? 1 : playing ? rage : 0;
+  const y = h * (.89 - (playing ? levitation.height - cameraHeight(levitation.height) : 0)) - 28 * scale;
+  const restless = status === 'result' && rage >= 1 ? 1 : playing && levitation.height === 0 ? rage : 0;
   const breathe = Math.sin(time * (2 + restless * 4));
   ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
-  ellipse(0, 18, 115, 16, '#050d1770');
+  if (!playing || levitation.height < .15) ellipse(0, 18, 115, 16, '#050d1770');
   // Curled body, lighter ruff, and a broad tail wrapped around the paws.
   ellipse(13, -15, 83, 48 + breathe * 1.7, '#3a4e62', -.08);
   ellipse(27, -24, 59, 33 + breathe, '#465d70', -.12);
@@ -265,25 +274,9 @@ function drawWolf(time) {
 
 function draw(time) {
   ctx.clearRect(0, 0, w, h);
-  const bg = ctx.createLinearGradient(0, 0, 0, h);
-  bg.addColorStop(0, '#080f20'); bg.addColorStop(.65, '#15283c'); bg.addColorStop(1, '#243e43');
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
-  for (const s of stars) {
-    ctx.globalAlpha = .25 + (.5 + .5 * Math.sin(time * .5 + s.phase)) * .5;
-    ellipse(s.x * w, s.y * h, s.r, s.r, '#dbe7d8');
-  }
-  ctx.globalAlpha = 1;
-  const mx = w * .77, my = h * (h < 500 ? .4 : .24), mr = Math.min(w * .075, h * .08, 64);
-  const halo = ctx.createRadialGradient(mx, my, mr, mx, my, mr * 3);
-  halo.addColorStop(0, '#d5e5c416'); halo.addColorStop(1, '#d5e5c400');
-  ctx.fillStyle = halo; ctx.fillRect(mx - mr * 3, my - mr * 3, mr * 6, mr * 6);
-  ellipse(mx, my, mr, mr, '#e0e5c8');
-  for (const [x, y, r] of [[-.3, .1, .16], [.25, -.3, .12], [.25, .4, .2]]) ellipse(mx + x * mr, my + y * mr, mr * r, mr * r, '#c7cfb2');
-  for (let layer = 0; layer < 3; layer++) {
-    ctx.fillStyle = ['#162d39', '#112731', '#0b1c25'][layer]; ctx.beginPath(); ctx.moveTo(0, h);
-    for (let x = 0; x <= w + 10; x += 10) ctx.lineTo(x, h * (.77 + layer * .075) + Math.sin(x / w * 8 + layer * 2) * h * .035 + Math.cos(x / w * 4 + layer) * h * .025);
-    ctx.lineTo(w, h); ctx.fill();
-  }
+  const height = ['playing', 'paused', 'finale'].includes(status) ? levitation.height : 0;
+  drawDreamSky(ctx, w, h, height, time, stars);
+  drawGrass(ctx, w, h, cameraHeight(height), levitation.impact, ['playing', 'paused', 'finale'].includes(status) ? .5 : w < 600 ? .70 : .77);
   if (status !== 'finale' && status !== 'result') drawWolf(time);
   if (status === 'finale') drawFinale();
   if (status === 'result') drawHunter(ctx, w * (w < 600 ? .78 : .77), h * .83, Math.min(w / 500, h / 650, 1.5), { bloody: true, look: -3 });
@@ -325,7 +318,10 @@ function drawFinale() {
     ellipse(v.x*w,v.y*h+11,4,6,'#182839');
     ctx.restore();
   }
-  let x = w * .5, y = h * .5;
+  const wake = Math.min(1, Math.max(0, (t - .16) / .49));
+  let x = w * (.5 + Math.min(1, levitation.height / .32) * .24 * (1 - wake));
+  const restingY = h * (.89 - levitation.height + cameraHeight(levitation.height)) - 28 * Math.min(w / (w < 600 ? 490 : 620), h / 650, 1.18) * .8;
+  let y = restingY + (h * .5 - restingY) * wake;
   const victim = victims[beat.index];
   if (t >= .65 && t < 1.7 && victim) { x = victim.x * w; y = victim.y * h + 40; }
   const mouth = t < .65 ? 0 : t < 1.7 ? Math.sin(beat.phase * Math.PI) : Math.max(0, Math.sin((t-1.7)*24)) * .3;

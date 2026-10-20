@@ -76,3 +76,6 @@ button{min-height:44px}header{top:max(18px,env(safe-area-inset-top));left:max(5%
   .result-stats{margin-top:6px;padding:8px 0}.result-stats div{gap:3px}
   #resultText{font-size:9px;line-height:1.35;margin:8px 0}
 }
+
+/* Let accuracy colors settle gently between taps and sheep entries. */
+#count{transition:color .45s ease}

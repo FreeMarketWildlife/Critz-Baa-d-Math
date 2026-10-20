@@ -6,11 +6,11 @@ A counting game about a very fragile night's sleep. Browser MVP, with fluffy ani
 
 Run `npm run dev` and open http://localhost:4187. Run `npm test` for the math and fairness checks.
 
-Tap the left half to subtract one; tap the right half to add one. Arrow keys or A/D also work. Operations apply when a sheep crosses the center line. Keep the running total in your head; the true answer is revealed only after a run. For a perfect count, reach the next sheep’s resulting total before it crosses the center, and hold it through the crossing. Perfect crossings calm the wolf and count toward the final perfect percentage. Escape or Space pauses; switching tabs automatically pauses.
+Tap the left half to subtract one; tap the right half to add one. Arrow keys or A/D also work. Operations apply as soon as each sheep becomes visible at the screen edge. Keep the running total in your head; the true answer is revealed only after a run. For a perfect count, reach the next sheep’s resulting total before it crosses the center, and hold it until the crossing or the next sheep appears. Perfect crossings calm the wolf and count toward the final perfect percentage. Escape or Space pauses; switching tabs automatically pauses.
 
 The current menu starts **endless survival**. Arithmetic unlocks use active time: +1 only for the first 15 seconds, −1 joins at 15 seconds, occasional ×2 at 30 seconds, and ÷2 at 60 seconds. The three-minute campaign and quick-dream menu have been replaced by this combined survival release.
 
-Sheep pop up from both sides on gravity-driven arcs, spin, and fall back offscreen. Each counts once when crossing the center gate. The fixed-step physics and queued arithmetic support overlapping flights.
+Sheep pop up from both sides on gravity-driven arcs, spin, and fall back offscreen. Each changes the total once on entry; the center gate scores perfect timing. The fixed-step physics and queued arithmetic support overlapping flights.
 
 White +1, red −1, gold ×2, blue ÷2. Screen redness communicates rage without a rage bar. Sound is optional. The end screen reports survival time, sheep passed, perfect percentage, peak math total, and dream score.
 
@@ -44,7 +44,7 @@ Run the art review at http://localhost:4187/tests/visual-review.html to inspect 
 
 Moonwool is an original, looping 16-bar lullaby in C major, with a soft bell melody, harp pattern, warm chords, and quiet bass. It stays at 72 BPM in 3/4. A slow ×2 or ÷2 approach smoothly closes a music-only low-pass filter to 480 Hz; it opens back to 9 kHz at the crossing. Effects and counting notes stay clear. Pausing freezes the music position; restarting resets the score. Starting muted and enabling sound later works too.
 
-Taps, ordinary crossing chimes, and perfect chimes share one continuous C-major sequence. Perfects use a longer sparkling tone instead of an unrelated chord, and their crossing does not consume a second note.
+Taps and perfect chimes share one continuous C-major sequence. Perfects use a longer bell tone with delayed octave sparkles on the same note. Ordinary crossings are silent and do not advance the sequence.
 
 A sheep turns delighted once its own total is reached, before or after its crossing, and stays delighted until despawning. Only the next incoming and most recent crossed sheep can receive new credit, so repeated totals do not accidentally credit the whole flock. This visual credit is separate from the existing held-through-crossing perfect timing rule.
 
@@ -55,3 +55,7 @@ Open `/tests/audio-review.html` to render an eighteen-second soundtrack sample t
 All runtime changes are included: phone controls, directional sheep personalities and persistent counted smiles, centered sleeping wolf, timed arithmetic unlocks, extended large-operation previews, continuous musical counting, the filtered Moonwool soundtrack, and the wolf wake/eating finale. The game ends with a scorecard and Play Again / Go Back to Sleep actions. Dream score is 100 per sheep passed + 50 per perfect + 10 per whole second survived.
 
 The combined public release also includes compact phone scorecards with paired 44px-or-larger restart/navigation controls.
+
+## Entry counting and gentler feedback
+
+Accuracy follows the latest visible sheep immediately, including overlapping flights. Correct holds on an earlier sheep are preserved when a new sheep enters before its center crossing. The count eases through green, orange, yellow, and red over 0.45 seconds, with a ten-count minimum error scale so small totals do not jump straight to red. Halfway crossings have no ordinary chime or bleat; perfects retain the same C-major note sequence with a stronger, longer octave shimmer.

@@ -66,11 +66,19 @@ export class DreamSounds {
   }
   playCountNote(direction = 1, kind = 'tap') {
     const step = direction > 0 ? this.tapStep++ : --this.tapStep;
-    const duration = kind === 'perfect' ? .4 : kind === 'cross' ? .23 : .18;
-    const level = kind === 'perfect' ? .15 : kind === 'cross' ? .055 : .13;
+    const duration = kind === 'perfect' ? .75 : .18;
+    const level = kind === 'perfect' ? .21 : .13;
     for (const [i, voice] of cMajorVoices(step).entries()) {
       if (voice.gain > .002) this.note(voice.frequency, duration,
         kind === 'perfect' ? i * .008 : 0, 'sine', voice.gain * level);
+    }
+    if (kind === 'perfect') {
+      // A bell-like octave shimmer repeats the same pitch class, without a chord
+      // or an extra melody step. Delayed glints make the reward stand out.
+      const frequency = cMajorVoices(step)[2].frequency;
+      this.note(frequency * 2, .6, .045, 'triangle', .045);
+      this.note(frequency * 4, .42, .12, 'sine', .035);
+      this.note(frequency * 2, .38, .22, 'sine', .025);
     }
   }
   tap(direction) { this.playCountNote(direction, 'tap'); }
@@ -84,13 +92,8 @@ export class DreamSounds {
   launch(side) {
     this.note(side < 0 ? 170 : 195, .13, 0, 'sine', .09, 560);
   }
-  cross(op, { perfect = false } = {}) {
-    // Perfect already played the next note. Never overlay an unrelated chord
-    // or consume a second sequence step for the same crossing.
-    if (!perfect) this.playCountNote(1, 'cross');
-    const c = this.context;
-    if (c && c.currentTime - this.lastBaa > 3.5) { this.lastBaa = c.currentTime; this.baa(); }
-  }
+  // Crossing is a silent checkpoint; only perfect() plays a reward.
+  cross() {}
   baa() {
     const c = this.context;
     if (!this.enabled || !c || c.state !== 'running') return;

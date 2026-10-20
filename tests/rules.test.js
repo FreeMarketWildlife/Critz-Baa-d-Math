@@ -2,7 +2,7 @@ import { cMajorVoices } from '../src/sound.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { apply, chooseOperation, interval, catchUpGrace, stepRage, starsFor, tolerance, countColor, observeAnticipation, isPerfectCrossing, calmForPerfect, perfectPercent, countingError } from '../src/rules.js';
-import { launchFlight, advanceFlight, flightIsGone, CROSSING_TIME, FIXED_STEP, previewTime, launchGap } from '../src/physics.js';
+import { launchFlight, advanceFlight, flightIsGone, CROSSING_TIME, FIXED_STEP, previewTime, launchGap, enterFlight } from '../src/physics.js';
 
 function seeded(seed = 17) {
   return () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
@@ -114,17 +114,36 @@ test('three-minute runs remain physically achievable at seven taps per second', 
 });
 
 
-test('count color interpolates from exact green through 15% yellow to fully inaccurate red', () => {
+test('count color gradually visits green, orange, yellow, and red symmetrically', () => {
   assert.equal(countColor(100, 100), 'rgb(155, 225, 164)');
-  assert.equal(countColor(85, 100), 'rgb(234, 196, 123)');
-  assert.equal(countColor(115, 100), countColor(85, 100));
+  assert.equal(countColor(65, 100), 'rgb(239, 169, 105)');
+  assert.equal(countColor(35, 100), 'rgb(238, 210, 112)');
   assert.equal(countColor(0, 100), 'rgb(245, 112, 123)');
   assert.equal(countColor(250, 100), countColor(0, 100));
-  assert.notEqual(countColor(95, 100), countColor(100, 100));
-  assert.notEqual(countColor(50, 100), countColor(85, 100));
-  assert.equal(countColor(-85, -100), countColor(85, 100));
+  assert.equal(countColor(-65, -100), countColor(135, 100));
+  assert.notEqual(countColor(0, 1), countColor(0, 100));
   assert.equal(countColor(0, 0), countColor(100, 100));
-  assert.equal(countColor(1, 0), countColor(0, 100));
+  for (let error = 1; error <= 10; error++) assert.notEqual(countColor(error, 0), countColor(error - 1, 0));
+});
+test('each sheep enters once at the screen edge well before its center crossing', () => {
+  for (const [width, height] of [[390, 844], [1440, 900], [844, 390]]) {
+    for (const side of [-1, 1]) for (const change of [1, 20, -30]) {
+      const flight = launchFlight(side, seeded(), previewTime(change));
+      // Short landscape viewports can show the wool immediately at launch.
+      while (!enterFlight(flight, width, height)) advanceFlight(flight, FIXED_STEP);
+      assert.ok(flight.age < flight.crossingTime * .2);
+      assert.equal(enterFlight(flight, width, height), false);
+      while (flight.age < flight.crossingTime) advanceFlight(flight, FIXED_STEP);
+      assert.equal(enterFlight(flight, width, height), false);
+    }
+  }
+});
+test('invisible sheep cannot earn an anticipated perfect and overlaps preserve earned holds', () => {
+  const hidden = { entered: false, age: 0, crossingTime: .8, result: 1 };
+  observeAnticipation(hidden, 1); assert.equal(isPerfectCrossing(hidden, 1), false);
+  const prior = { readyBeforeCenter: true, result: 1 };
+  prior.perfectLocked = isPerfectCrossing(prior, 1);
+  assert.equal(isPerfectCrossing(prior, 2), true);
 });
 
 test('perfect requires an early match held through crossing, not a late correction', () => {

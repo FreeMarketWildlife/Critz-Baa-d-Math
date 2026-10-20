@@ -28,24 +28,23 @@ export function stepRage(rage, error, limit, dt, grace = false) {
   return Math.min(1, rage + dt * rate);
 }
 
-// Relative error uses the true total's magnitude, so over/under and negative
-// totals behave symmetrically. At zero, one count away is fully inaccurate.
+// A small-total floor lets early mistakes move gradually through the gradient too.
 export function countColor(count, target) {
-  const error = Math.min(1, Math.abs(count - target) / Math.max(1, Math.abs(target)));
-  const green = [155, 225, 164], yellow = [234, 196, 123], red = [245, 112, 123];
-  const [from, to, t] = error <= .15
-    ? [green, yellow, error / .15]
-    : [yellow, red, (error - .15) / .85];
+  const error = Math.min(1, Math.abs(count - target) / Math.max(10, Math.abs(target)));
+  const stops = [[0, [155, 225, 164]], [.35, [239, 169, 105]], [.65, [238, 210, 112]], [1, [245, 112, 123]]];
+  const index = stops.findIndex(([at]) => at >= error);
+  const [end, to] = stops[Math.max(1, index)], [start, from] = stops[Math.max(1, index) - 1];
+  const t = (error - start) / (end - start);
   return `rgb(${from.map((channel, i) => Math.round(channel + (to[i] - channel) * t)).join(', ')})`;
 }
 
-// Only the next sheep to cross can be anticipated, even with overlapping flights.
+// Only visible sheep can be anticipated; the game selects the latest entry.
 export function observeAnticipation(flight, count) {
-  if (flight && !flight.crossed && flight.age < flight.crossingTime && count === flight.result) {
+  if (flight && flight.entered !== false && !flight.crossed && flight.age < flight.crossingTime && count === flight.result) {
     flight.readyBeforeCenter = true;
   }
 }
-export const isPerfectCrossing = (flight, count) => Boolean(flight.readyBeforeCenter && count === flight.result);
+export const isPerfectCrossing = (flight, count) => Boolean(flight.perfectLocked || (flight.readyBeforeCenter && count === flight.result));
 export const calmForPerfect = rage => Math.max(0, rage - .22);
 export const perfectPercent = (hits, total) => total > 0 ? Math.floor(hits / total * 100) : 0;
 
@@ -57,10 +56,10 @@ export function countingError(count, target, incoming) {
   return Math.max(low - count, count - high, 0);
 }
 
-// Credit only the next incoming sheep and the most recent crossed sheep. Matching
+// Credit the latest visible incoming sheep and the most recent crossed sheep. Matching
 // an old repeated total must not accidentally mark every similar sheep on screen.
 export function creditCountedSheep(flights, count) {
-  const incoming = flights.find(flight => !flight.crossed);
+  const incoming = flights.findLast(flight => flight.entered && !flight.crossed) ?? flights.find(flight => flight.entered !== false && !flight.crossed);
   const current = flights.findLast(flight => flight.crossed);
   for (const flight of [incoming, current]) if (flight && count === flight.result) flight.counted = true;
 }

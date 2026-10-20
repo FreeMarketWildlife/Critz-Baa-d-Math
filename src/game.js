@@ -3,7 +3,7 @@ import { FINALE_DURATION, runStats, attackBeat, drawHunter } from './finale.js';
 import { drawSheep } from './sheep.js';
 import { apply, tolerance, chooseOperation, interval, catchUpGrace, starsFor, stepRage, countColor, observeAnticipation, isPerfectCrossing, calmForPerfect, perfectPercent, countingError, creditCountedSheep } from './rules.js';
 import { DreamSounds } from './sound.js';
-import { launchFlight, advanceFlight, flightIsGone, FIXED_STEP, previewTime, launchGap } from './physics.js';
+import { launchFlight, advanceFlight, flightIsGone, FIXED_STEP, previewTime, launchGap, enterFlight, sheepRadius } from './physics.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('night'), ctx = canvas.getContext('2d');
@@ -47,14 +47,14 @@ function begin(m) {
   screens('play'); update();
 }
 
-function nextSheep() { return orbs.find(orb => !orb.crossed); }
+function nextSheep() { return orbs.findLast(orb => orb.entered && !orb.crossed); }
 function readyAhead() { const sheep = nextSheep(); return sheep && count === sheep.result; }
 function update() {
   const duration = mode === 'demo' ? 60 : 180;
   const seconds = Math.floor(elapsed);
   $('time').textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   $('count').textContent = count;
-  $('count').style.color = countColor(count, readyAhead() ? count : target);
+  $('count').style.color = countColor(count, target);
   $('count').style.transform = `scale(${1 + countKick * .08})`;
   $('sheep').textContent = n;
   $('state').textContent = rage > .7 ? 'WAKING UP' : rage > .3 ? 'RESTLESS' : 'SOUND ASLEEP';
@@ -148,7 +148,7 @@ function tick(dt) {
     const after = apply(plannedTarget, op), changed = after - plannedTarget;
     lastSide = Math.random() < .78 ? -lastSide : lastSide;
     const lead = previewTime(changed);
-    const flight = { ...launchFlight(lastSide, Math.random, lead), op, result: after, readyBeforeCenter: false, counted: false };
+    const flight = { ...launchFlight(lastSide, Math.random, lead), op, result: after, readyBeforeCenter: false, counted: false, entered: false };
     orbs.push(flight); plannedTarget = after; launched++;
     next = elapsed + launchGap(interval(launched, changed), lead);
     burst(flight.x, .98, colors[op], .65);
@@ -157,7 +157,20 @@ function tick(dt) {
   observeAnticipation(nextSheep(), count);
   creditCountedSheep(orbs, count);
   for (const orb of orbs) {
-    if (advanceFlight(orb, dt) && !orb.crossed) {
+    const crossedNow = advanceFlight(orb, dt);
+    if (enterFlight(orb, w, h)) {
+      // A new visible total must not undo a correct hold on the previous sheep.
+      for (const previous of orbs) if (previous !== orb && previous.entered && !previous.crossed) {
+        previous.perfectLocked ||= isPerfectCrossing(previous, count);
+      }
+      const before = target; target = orb.result; peak = Math.max(peak, target);
+      grace = elapsed + catchUpGrace(target - before);
+      lastOp = elapsed;
+      $('operation').textContent = orb.op;
+      $('operation').style.color = colors[orb.op];
+      observeAnticipation(orb, count);
+    }
+    if (crossedNow && !orb.crossed) {
       const perfect = isPerfectCrossing(orb, count);
       orb.crossed = true;
       if (count === orb.result) orb.counted = true;
@@ -166,11 +179,7 @@ function tick(dt) {
         rage = calmForPerfect(rage); sounds.perfect();
       } else perfectChain = 0;
       observeAnticipation(nextSheep(), count);
-      const before = target; target = apply(target, orb.op); peak = Math.max(peak, target); n++;
-      grace = elapsed + catchUpGrace(target - before);
-      lastOp = elapsed; crossingGlow = 1;
-      $('operation').textContent = orb.op;
-      $('operation').style.color = colors[orb.op];
+      n++; crossingGlow = 1;
       burst(orb.x, orb.y, colors[orb.op]);
       sounds.cross(orb.op, { perfect });
     }
@@ -185,7 +194,7 @@ function tick(dt) {
   particles = particles.filter(p => p.age < p.life);
   for (const ring of rings) ring.age += dt;
   rings = rings.filter(ring => ring.age < .4);
-  const error = countingError(count, target, nextSheep());
+  const error = countingError(count, target);
   rage = stepRage(rage, error, tolerance(n), dt, elapsed <= grace);
   if (rage > .7) sounds.warning();
   perfectFlash = Math.max(0, perfectFlash - dt);
@@ -339,7 +348,7 @@ function drawFinale() {
 function drawOrb(orb) {
   const color = colors[orb.op];
   // A larger, landscape-shaped silhouette reads clearly on small phone screens.
-  const r = Math.max(25, Math.min(w * .075, 38));
+  const r = sheepRadius(w);
   for (let i = 1; i < orb.trail.length; i++) {
     ctx.globalAlpha = i / orb.trail.length * .13;
     ctx.strokeStyle = color; ctx.lineWidth = r * .4 * i / orb.trail.length;

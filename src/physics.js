@@ -32,3 +32,11 @@ export const flightIsGone = body => body.age > body.crossingTime && body.y > 1.1
 // remain ordered. Standard ±1 sheep keep the original snappy .8-second lead-in.
 export const previewTime = change => Math.abs(change) <= 1 ? CROSSING_TIME : Math.max(CROSSING_TIME, Math.abs(change) / 7 + .7);
 export const launchGap = (spacing, crossingTime) => Math.max(spacing, crossingTime - CROSSING_TIME + .52);
+
+// Match the rendered wool/ears near the bottom edge, rather than the center gate.
+export const sheepRadius = width => Math.max(25, Math.min(width * .075, 38));
+export function enterFlight(body, width, height) {
+  if (body.entered || body.y * height - sheepRadius(width) * 1.15 > height) return false;
+  body.entered = true;
+  return true;
+}

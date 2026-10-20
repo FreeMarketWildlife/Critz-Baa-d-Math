@@ -1,6 +1,6 @@
 # Critz: Baa’d Math
 
-A counting game about a very fragile night's sleep. Browser MVP, with wool-edged operation discs standing in for sheep and an animated sleeping wolf. No art assets or build step required.
+A counting game about a very fragile night's sleep. Browser MVP, with fluffy animated sheep and a sleeping wolf. No art assets or build step required.
 
 ## Play locally
 
@@ -20,4 +20,10 @@ See [game design](docs/GAME-DESIGN.md) and [roadmap](docs/ROADMAP.md).
 
 ## Files
 
-`index.html`: interface; `src/style.css`: responsive presentation; `src/game.js`: animation, input, lifecycle; `src/rules.js`: arithmetic and balancing; `src/physics.js`: ballistic motion; `tests/`: rule regression checks; `docs/`: design and next steps.
+`index.html`: interface; `src/style.css`: responsive presentation; `src/game.js`: animation, input, lifecycle; `src/rules.js`: arithmetic and balancing; `src/physics.js`: ballistic motion; `src/sound.js`: synthesized sound effects; `tests/`: rule regression checks; `docs/`: design and next steps.
+
+## Phone and sound polish
+
+Play uses full-screen left/right touch zones, large thumb targets, safe-area spacing, dynamic viewport sizing, and dedicated portrait/small-phone/landscape layouts. The menu scrolls when vertical space is tight. Fluffy canvas sheep have faces, wool curls, kicking hooves, and upright operation labels; the ballistic simulation and math unlock times are unchanged.
+
+Synthesized pops, launch whistles, chimes, occasional cartoon bleats, danger heartbeats, and win/loss jingles run through Web Audio. Sound starts with the first play gesture; the header mute toggle is saved locally. Audio suspends while paused or backgrounded and resumes on a user gesture. No audio downloads or external sound services are needed. Physical iPhone/Android speaker and browser testing remains a device check; desktop phone-sized previews do not establish that coverage.

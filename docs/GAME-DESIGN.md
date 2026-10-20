@@ -24,4 +24,11 @@ A wolf counts sheep to sleep. Losing count wakes it and ends in a ravenous, bloo
 
 ## Visual boundary
 
-Circles with symbols are deliberately temporary. The prototype uses night scenery and a red failure treatment. A procedural canvas wolf sleeps at the bottom, breathes, emits drifting Zs, twitches its ears as rage rises, and opens an eye near waking. Sheep remain symbolic wool-edged discs. Final sheep artwork and the intended graphic game-over scene are not implemented. The campaign currently contains one playable night; no invented story or level map.
+Sheep are drawn procedurally in canvas. The prototype uses night scenery and a red failure treatment. A procedural canvas wolf sleeps at the bottom, breathes, emits drifting Zs, twitches its ears as rage rises, and opens an eye near waking. Sheep now have fluffy bodies and faces; the intended graphic game-over scene is not implemented. The campaign currently contains one playable night; no invented story or level map.
+
+## Phone presentation and sound
+
+- Entire left/right screen halves accept immediate pointer taps; no drag, swipe, or held-button auto-counting is added. Controls avoid the phone home indicator and header actions. Portrait, short portrait, and landscape layouts use safe-area insets and dynamic viewport units; cramped menus scroll.
+- Sheep now have colored fluffy wool, curls, charcoal faces, floppy pink-lined ears, shiny eyes, blush, smiles, and kicking legs. Upright high-contrast math symbols stay on their sides while their bodies gently tumble.
+- Web Audio synthesizes soft tap pops, rising launch sounds, operation chimes, occasional cartoon bleats, a warning heartbeat, and end jingles. A master compressor bounds overlapping voices. Sound is enabled by default, unlocked on a play gesture, and can be muted with a saved preference. Pausing/backgrounding suspends the audio context; resume uses a user gesture.
+- No accounts, trackers, downloaded audio, final external art assets, or changes to the 15/30/60-second operation unlocks are introduced.

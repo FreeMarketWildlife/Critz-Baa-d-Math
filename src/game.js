@@ -1,4 +1,5 @@
 import { apply, tolerance, chooseOperation, interval, catchUpGrace, starsFor, stepRage, countColor } from './rules.js';
+import { DreamSounds } from './sound.js';
 import { launchFlight, advanceFlight, flightIsGone, FIXED_STEP } from './physics.js';
 
 const $ = id => document.getElementById(id);
@@ -11,7 +12,8 @@ let w, h, dpr;
 let mode = 'campaign', status = 'menu', count = 0, target = 0, plannedTarget = 0;
 let n = 0, launched = 0, elapsed = 0, rage = 0, green = 0, assessed = 0;
 let next = .45, grace = 0, orbs = [], particles = [], rings = [], lastSide = 1;
-let sound = false, audio, previous = performance.now(), lastOp = -10;
+const sounds = new DreamSounds();
+let previous = performance.now(), lastOp = -10;
 let accumulator = 0, visualTime = 0, countKick = 0, crossingGlow = 0, tapGlow = 0, tapSide = 1;
 
 function resize() {
@@ -20,21 +22,6 @@ function resize() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 addEventListener('resize', resize); resize();
-
-function tone(freq, length = .14, type = 'sine') {
-  if (!sound) return;
-  try {
-    audio ??= new AudioContext(); audio.resume();
-    const oscillator = audio.createOscillator(), gain = audio.createGain();
-    oscillator.type = type;
-    oscillator.frequency.setValueAtTime(freq, audio.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(freq * .7, audio.currentTime + length);
-    gain.gain.setValueAtTime(.035, audio.currentTime);
-    gain.gain.exponentialRampToValueAtTime(.001, audio.currentTime + length);
-    oscillator.connect(gain).connect(audio.destination);
-    oscillator.start(); oscillator.stop(audio.currentTime + length);
-  } catch { /* Sound is optional on browsers that restrict audio. */ }
-}
 
 function screens(id) {
   for (const name of ['menu', 'play', 'result', 'paused']) $(name).hidden = name !== id;
@@ -49,6 +36,7 @@ function begin(m) {
   next = .45; grace = 0; accumulator = 0; orbs = []; particles = []; rings = [];
   lastOp = -10; countKick = crossingGlow = tapGlow = 0;
   $('modeLabel').textContent = m === 'campaign' ? 'NIGHT ONE' : m === 'demo' ? 'QUICK DREAM' : 'ENDLESS';
+  sounds.start();
   screens('play'); update();
 }
 
@@ -82,14 +70,14 @@ function finish(win) {
   if (win) {
     try { localStorage.setItem('baad-v2-' + mode, Math.max(award, Number(localStorage.getItem('baad-v2-' + mode) || 0))); } catch {}
   }
-  tone(win ? 660 : 90, .6);
+  sounds.finish(win);
 }
 
 function tap(delta, event) {
   if (status !== 'playing') return;
   count += delta; countKick = 1; tapGlow = 1; tapSide = delta;
   rings.push({ x: event?.clientX ?? w * (delta > 0 ? .78 : .22), y: event?.clientY ?? h * .78, age: 0 });
-  tone(delta > 0 ? 400 : 290, .07); update();
+  sounds.tap(delta); update();
 }
 for (const [id, delta] of [['minus', -1], ['plus', 1]]) {
   $(id).addEventListener('pointerdown', e => { e.preventDefault(); tap(delta, e); });
@@ -98,16 +86,22 @@ for (const [id, delta] of [['minus', -1], ['plus', 1]]) {
 for (const button of document.querySelectorAll('[data-mode]')) button.onclick = () => begin(button.dataset.mode);
 function pause() {
   if (status !== 'playing') return;
-  status = 'paused'; accumulator = 0; screens('paused');
+  status = 'paused'; accumulator = 0; sounds.pause(); screens('paused');
 }
 $('pause').onclick = pause;
-$('resume').onclick = () => { status = 'playing'; accumulator = 0; screens('play'); };
+$('resume').onclick = () => { sounds.unlock(); status = 'playing'; accumulator = 0; screens('play'); };
 function home() {
   status = 'menu'; orbs = []; particles = []; rings = []; screens('menu');
   try { $('best').textContent = localStorage.getItem('baad-v2-campaign') ? `NIGHT ONE BEST  ${'★'.repeat(Number(localStorage.getItem('baad-v2-campaign')))}` : ''; } catch {}
 }
 $('home').onclick = home; $('quit').onclick = home; $('again').onclick = () => begin(mode);
-$('sound').onclick = () => { sound = !sound; $('sound').textContent = sound ? 'Sound on' : 'Sound off'; tone(440); };
+function soundLabel() {
+  $('sound').textContent = sounds.enabled ? '♫ On' : '♫ Off';
+  $('sound').setAttribute('aria-pressed', String(sounds.enabled));
+  $('sound').setAttribute('aria-label', sounds.enabled ? 'Mute sound' : 'Enable sound');
+}
+$('sound').onclick = () => { sounds.toggle(); soundLabel(); if (sounds.enabled) sounds.baa(); };
+soundLabel();
 addEventListener('keydown', e => {
   if (!['ArrowLeft', 'ArrowRight', 'a', 'd', 'A', 'D', 'Escape', ' '].includes(e.key)) return;
   if (e.target.tagName === 'BUTTON' && e.key === ' ') return;
@@ -137,7 +131,7 @@ function tick(dt) {
     orbs.push(flight); plannedTarget = after; launched++;
     next = elapsed + interval(launched, changed);
     burst(flight.x, .98, colors[op], .65);
-    tone(lastSide < 0 ? 190 : 220, .17, 'triangle');
+    sounds.launch(lastSide);
   }
   for (const orb of orbs) {
     if (advanceFlight(orb, dt) && !orb.crossed) {
@@ -148,7 +142,7 @@ function tick(dt) {
       $('operation').textContent = orb.op;
       $('operation').style.color = colors[orb.op];
       burst(orb.x, orb.y, colors[orb.op]);
-      tone(orb.op === '+1' ? 570 : orb.op === '−1' ? 330 : 740);
+      sounds.cross(orb.op);
     }
     if (Math.floor(orb.age / .025) !== Math.floor((orb.age - dt) / .025)) {
       orb.trail.push({ x: orb.x, y: orb.y });
@@ -163,6 +157,7 @@ function tick(dt) {
   const error = Math.abs(count - target);
   if (elapsed > grace) { assessed += dt; if (error <= 1) green += dt; }
   rage = stepRage(rage, error, tolerance(n), dt, elapsed <= grace);
+  if (rage > .7) sounds.warning();
   countKick *= Math.exp(-dt * 13); crossingGlow *= Math.exp(-dt * 7); tapGlow *= Math.exp(-dt * 10);
   if (rage >= 1) finish(false);
   else if (mode !== 'endless' && elapsed >= (mode === 'demo' ? 60 : 180)) finish(true);
@@ -179,9 +174,9 @@ function path(points, fill) {
 
 function drawWolf(time) {
   const playing = status === 'playing' || status === 'paused';
-  const x = playing ? w * .5 : w * .77;
+  const x = playing ? w * .5 : w * (w < 600 ? .70 : .77);
   const y = playing ? h * .915 : h * .875;
-  const scale = Math.min(w / 620, h / 650, 1.18) * (playing ? .8 : 1.12);
+  const scale = Math.min(w / (w < 600 ? 490 : 620), h / 650, 1.18) * (playing ? .8 : 1.12);
   const restless = status === 'result' && rage >= 1 ? 1 : playing ? rage : 0;
   const breathe = Math.sin(time * (2 + restless * 4));
   ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
@@ -238,7 +233,7 @@ function draw(time) {
     ellipse(s.x * w, s.y * h, s.r, s.r, '#dbe7d8');
   }
   ctx.globalAlpha = 1;
-  const mx = w * .77, my = h * .24, mr = Math.min(w * .075, 64);
+  const mx = w * .77, my = h * (h < 500 ? .4 : .24), mr = Math.min(w * .075, h * .08, 64);
   const halo = ctx.createRadialGradient(mx, my, mr, mx, my, mr * 3);
   halo.addColorStop(0, '#d5e5c416'); halo.addColorStop(1, '#d5e5c400');
   ctx.fillStyle = halo; ctx.fillRect(mx - mr * 3, my - mr * 3, mr * 6, mr * 6);
@@ -269,33 +264,65 @@ function draw(time) {
 }
 
 function drawOrb(orb) {
-  const color = colors[orb.op], r = Math.max(23, Math.min(w * .055, 36));
+  const color = colors[orb.op];
+  // A larger, landscape-shaped silhouette reads clearly on small phone screens.
+  const r = Math.max(25, Math.min(w * .075, 38));
   for (let i = 1; i < orb.trail.length; i++) {
-    ctx.globalAlpha = i / orb.trail.length * .2;
-    ctx.strokeStyle = color; ctx.lineWidth = r * .55 * i / orb.trail.length;
+    ctx.globalAlpha = i / orb.trail.length * .13;
+    ctx.strokeStyle = color; ctx.lineWidth = r * .4 * i / orb.trail.length;
     ctx.lineCap = 'round'; ctx.beginPath();
     ctx.moveTo(orb.trail[i - 1].x * w, orb.trail[i - 1].y * h);
     ctx.lineTo(orb.trail[i].x * w, orb.trail[i].y * h); ctx.stroke();
   }
-  ctx.globalAlpha = orb.crossed ? .78 : 1;
+  ctx.globalAlpha = orb.crossed ? .88 : 1;
   const x = orb.x * w, y = orb.y * h;
-  ctx.save(); ctx.translate(x, y); ctx.rotate(orb.angle);
-  ctx.shadowColor = color; ctx.shadowBlur = orb.crossed ? 5 : 17;
-  // Small ears and a woolly rim keep the operation disc readable as a sheep placeholder.
-  ellipse(-r * .88, -r * .27, r * .25, r * .13, color, -.5);
-  ellipse(r * .88, -r * .27, r * .25, r * .13, color, .5);
-  ellipse(0, 0, r, r, color); ctx.shadowBlur = 0;
-  for (let i = 0; i < 10; i++) {
-    const a = i / 10 * Math.PI * 2;
-    ellipse(Math.cos(a) * r * .87, Math.sin(a) * r * .87, r * .19, r * .19, color);
+  ctx.save(); ctx.translate(x, y);
+  // A gentle tumble lets faces stay recognizable while wool and hooves rotate.
+  ctx.rotate(Math.sin(orb.angle) * .32);
+  const face = '#344454', hoof = '#273748';
+  const kick = Math.sin(orb.age * 14) * .1;
+  // Four tiny kicking legs and dark rounded hooves.
+  for (const [lx, ly, angle] of [[-.55, .63, -.15], [.2, .67, .12], [-.25, .6, .2], [.48, .54, -.1]]) {
+    ellipse(lx * r, ly * r, r * .115, r * .3, face, angle + kick);
+    ellipse(lx * r + kick * r, (ly + .22) * r, r * .15, r * .1, hoof);
   }
-  const shine = ctx.createRadialGradient(-r * .35, -r * .45, 0, 0, 0, r);
-  shine.addColorStop(0, '#ffffff45'); shine.addColorStop(1, '#ffffff00');
-  ellipse(0, 0, r * .92, r * .92, shine);
+  // Tail and creamy colored wool, shaded underneath and puffed along the rim.
+  ellipse(-r * 1.04, -r * .1, r * .26, r * .22, color, -.4);
+  ctx.shadowColor = color; ctx.shadowBlur = orb.crossed ? 0 : 9;
+  ellipse(-r * .12, 0, r * 1.05, r * .77, color); ctx.shadowBlur = 0;
+  for (let i = 0; i < 12; i++) {
+    const a = i / 12 * Math.PI * 2;
+    ellipse(-r * .12 + Math.cos(a) * r * .88, Math.sin(a) * r * .62, r * .3, r * .27, color);
+  }
+  ellipse(-r * .15, r * .39, r * .74, r * .21, '#26394d13');
+  // Soft curls create wool texture rather than an operation coin.
+  ctx.strokeStyle = '#ffffff65'; ctx.lineWidth = Math.max(1, r * .04);
+  for (const [cx, cy] of [[-.65, -.25], [-.1, -.47], [.32, -.2], [-.62, .23], [.22, .31]]) {
+    ctx.beginPath(); ctx.arc(cx * r, cy * r, r * .13, .2, Math.PI * 1.65); ctx.stroke();
+  }
+  // Floppy ears, a charcoal face, sparkling eyes, blush, and a little smile.
+  ellipse(r * .57, -r * .35, r * .35, r * .15, face, -.55);
+  ellipse(r * 1.19, -r * .28, r * .3, r * .14, face, .6);
+  ellipse(r * .55, -r * .34, r * .19, r * .07, '#d998a0', -.55);
+  ellipse(r * 1.19, -r * .27, r * .16, r * .065, '#d998a0', .6);
+  ellipse(r * .87, -r * .03, r * .44, r * .54, face, -.12);
+  for (const ex of [.71, 1.02]) {
+    ellipse(r * ex, -r * .12, r * .095, r * .125, '#fff9e8');
+    ellipse(r * (ex + .015), -r * .105, r * .051, r * .076, '#172638');
+    ellipse(r * (ex + .035), -r * .14, r * .02, r * .025, '#ffffff');
+  }
+  ellipse(r * .58, r * .14, r * .09, r * .05, '#df99a666');
+  ellipse(r * 1.12, r * .17, r * .08, r * .05, '#df99a666');
+  ellipse(r * .87, r * .16, r * .055, r * .04, '#dfacb4');
+  ctx.strokeStyle = '#b8c6ca'; ctx.lineWidth = r * .035;
+  ctx.beginPath(); ctx.moveTo(r * .87, r * .2); ctx.quadraticCurveTo(r * .84, r * .3, r * .74, r * .25); ctx.stroke();
+  // A wool forelock sits between the ears.
+  for (const [fx, fy] of [[.61, -.49], [.85, -.55], [1.06, -.47]]) ellipse(fx * r, fy * r, r * .18, r * .16, color);
   ctx.restore();
-  // Labels remain upright even while their bodies tumble.
+  // The arithmetic stays upright on the sheep's side for quick reading.
   ctx.fillStyle = '#1b2838'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = `700 ${r * .72}px 'Space Grotesk',sans-serif`; ctx.fillText(orb.op, x, y);
+  ctx.font = `700 ${r * .75}px 'Space Grotesk',sans-serif`;
+  ctx.fillText(orb.op, x - r * .2, y + r * .03);
   ctx.globalAlpha = 1;
 }
 

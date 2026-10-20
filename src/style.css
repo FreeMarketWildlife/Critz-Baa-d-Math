@@ -12,3 +12,44 @@
 #menu .choices,#menu .legend,#menu .hint{position:relative;z-index:1}
 @media(max-width:600px){.counter{top:56%}.tapzones button{padding-bottom:32px}.tapzones b{font-size:38px}#operation{top:46%}#pace{top:10%}}
 @media(prefers-reduced-motion:reduce){#count{transform:none!important}}
+/* Touch-first play: both halves respond immediately, all the way to the edges. */
+html,body{width:100%;height:100%;overscroll-behavior:none}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+button{min-height:44px}header{top:max(18px,env(safe-area-inset-top));left:max(5%,env(safe-area-inset-left));right:max(5%,env(safe-area-inset-right))}
+.tools button{min-width:58px;min-height:44px}footer{bottom:max(18px,env(safe-area-inset-bottom))}
+#play{position:fixed;inset:0}
+.hud{position:absolute;top:calc(88px + env(safe-area-inset-top));left:6%;right:6%;pointer-events:none}
+#play .countline{top:29%}#pace{top:21%}#operation{top:51%}
+.counter{top:60%}.tapzones{inset:0}.tapzones button{border-radius:0;padding-bottom:calc(8dvh + env(safe-area-inset-bottom));touch-action:none}
+.tapzones b{display:grid;place-items:center;width:64px;height:64px;border:1px solid #bfdabc30;border-radius:22px;background:#bfdabc0a;box-shadow:inset 0 1px #ffffff08;font-size:42px;line-height:1}
+.tapzones span{color:#9fb2bd;font-size:10px;letter-spacing:1.5px}
+.progress{left:6%;width:88%;bottom:calc(20px + env(safe-area-inset-bottom));pointer-events:none}
+#count{font-variant-numeric:tabular-nums;line-height:1.05;text-shadow:0 4px 30px #00000022}
+#feedback{display:block;margin-top:12px}
+@media(max-width:600px){
+  header{left:max(6%,env(safe-area-inset-left));right:max(6%,env(safe-area-inset-right));gap:10px}
+  .brand{font-size:9px;letter-spacing:.8px;white-space:nowrap}.brand span{margin:0 3px}.tools{gap:6px}.tools button{font-size:12px;padding:8px 10px;min-width:54px;border-radius:14px}
+  .panel{left:7%;width:86%;max-height:calc(100dvh - 120px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto;scrollbar-width:none;overscroll-behavior:contain;padding-bottom:4px}
+  #menu{top:calc(100px + env(safe-area-inset-top));transform:none;max-height:calc(100dvh - 145px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+  h1{display:flex;gap:9px;align-items:baseline;font-size:clamp(42px,13vw,68px);letter-spacing:-3.5px;line-height:1;margin:20px 0 14px}h1 br{display:none}
+  .eyebrow{font-size:8px;letter-spacing:2.2px}.intro{font-size:17px;line-height:1.5;margin:0 0 24px}.legend{gap:0;justify-content:space-between;max-width:280px;margin:20px 0 26px}.legend i{width:43px;height:43px;font-size:16px;box-shadow:0 4px 12px #00000015}.legend span{font-size:11px}
+  .choices{gap:10px}.choices button{min-height:57px;padding:16px 18px;border-radius:16px;font-size:14px;background-color:#ffffff08;backdrop-filter:blur(8px)}.choices .primary{background:#bfdabc}.choices button span{font-size:10px}
+  .hint{font-size:11px;line-height:1.7;margin:20px 0 0;max-width:270px}#best{margin-top:12px}
+  .hud{top:calc(88px + env(safe-area-inset-top))}.hud label{font-size:8px;letter-spacing:1.6px}.hud strong{font-size:25px}.sleep{width:40%}
+  #pace{top:21%;font-size:8px;letter-spacing:2px}#operation{top:52%;font-size:25px}
+  .counter{top:62%}#count{font-size:clamp(76px,23vw,110px);letter-spacing:-4px}.counter label{font-size:9px;letter-spacing:2.5px}#feedback{font-size:11px;margin-top:8px}
+  .tapzones button{padding-bottom:calc(9dvh + env(safe-area-inset-bottom));gap:10px}.tapzones b{width:68px;height:62px;border-radius:21px}.tapzones span{font-size:9px}
+  h2{font-size:48px;letter-spacing:-2.5px}.panel>button{min-height:52px;border-radius:16px}
+  footer{font-size:7px;letter-spacing:1.3px;left:7%;right:7%}
+}
+@media(max-width:600px) and (max-height:740px){
+  #menu{top:82px;max-height:calc(100dvh - 120px)}h1{margin:14px 0 10px}.intro{font-size:15px;margin-bottom:14px}.legend{margin:15px 0 18px}.legend i{width:36px;height:36px;font-size:14px}
+  .choices{gap:8px}.choices button{min-height:50px;padding:13px 16px}.hint{margin-top:14px}.counter{top:60%}#count{font-size:76px}.hud{top:82px}.tapzones button{padding-bottom:8dvh}.tapzones b{height:54px;width:62px}
+}
+@media(max-height:500px) and (max-width:1000px){
+  #menu{top:80px;left:6%;width:48%;max-height:calc(100dvh - 100px);transform:none;overflow-y:auto;scrollbar-width:none}
+  h1{display:flex;gap:8px;font-size:48px;line-height:1;letter-spacing:-3px;margin:12px 0}h1 br{display:none}.intro{font-size:14px;margin:10px 0}.legend{margin:12px 0}.choices button{min-height:44px;padding:10px 14px}.hint{font-size:10px;margin-top:12px}
+  .hud{top:70px}.hud label{font-size:8px}.hud strong{font-size:20px}#pace{top:35%;left:6%;text-align:left;width:auto}#play .countline{top:29%}.counter{top:58%}#count{font-size:58px}.counter label{font-size:8px}#feedback{font-size:9px;margin-top:3px}
+  .tapzones button{padding-bottom:max(35px,env(safe-area-inset-bottom));gap:5px}.tapzones b{width:55px;height:48px;font-size:30px}.tapzones span{font-size:8px}.progress{bottom:12px}
+  #result,#paused{left:7%;top:54%;width:55%;max-height:calc(100dvh - 90px);overflow-y:auto}h2{font-size:36px;margin:14px 0}.panel>p{font-size:12px}.panel>button{min-height:44px;padding:10px 14px}
+}

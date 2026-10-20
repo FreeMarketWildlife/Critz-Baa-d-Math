@@ -1,5 +1,6 @@
+import { slowArithmetic } from './music.js';
 import { drawSheep } from './sheep.js';
-import { apply, tolerance, chooseOperation, interval, catchUpGrace, starsFor, stepRage, countColor, observeAnticipation, isPerfectCrossing, calmForPerfect, perfectPercent, countingError } from './rules.js';
+import { apply, tolerance, chooseOperation, interval, catchUpGrace, starsFor, stepRage, countColor, observeAnticipation, isPerfectCrossing, calmForPerfect, perfectPercent, countingError, creditCountedSheep } from './rules.js';
 import { DreamSounds } from './sound.js';
 import { launchFlight, advanceFlight, flightIsGone, FIXED_STEP, previewTime, launchGap } from './physics.js';
 
@@ -85,6 +86,7 @@ function tap(delta, event) {
   count += delta; countKick = 1; tapGlow = 1; tapSide = delta;
   rings.push({ x: event?.clientX ?? w * (delta > 0 ? .78 : .22), y: event?.clientY ?? h * .78, age: 0 });
   observeAnticipation(nextSheep(), count);
+  creditCountedSheep(orbs, count);
   sounds.tap(delta); update();
 }
 for (const [id, delta] of [['minus', -1], ['plus', 1]]) {
@@ -97,8 +99,9 @@ function pause() {
   status = 'paused'; accumulator = 0; sounds.pause(); screens('paused');
 }
 $('pause').onclick = pause;
-$('resume').onclick = () => { sounds.unlock(); status = 'playing'; accumulator = 0; screens('play'); };
+$('resume').onclick = () => { sounds.resume(); status = 'playing'; accumulator = 0; screens('play'); };
 function home() {
+  sounds.stopMusic();
   status = 'menu'; orbs = []; particles = []; rings = []; screens('menu');
   try { $('best').textContent = localStorage.getItem('baad-v3-campaign') ? `NIGHT ONE BEST  ${'★'.repeat(Number(localStorage.getItem('baad-v3-campaign')))}` : ''; } catch {}
 }
@@ -136,17 +139,19 @@ function tick(dt) {
     const after = apply(plannedTarget, op), changed = after - plannedTarget;
     lastSide = Math.random() < .78 ? -lastSide : lastSide;
     const lead = previewTime(changed);
-    const flight = { ...launchFlight(lastSide, Math.random, lead), op, result: after, readyBeforeCenter: false };
+    const flight = { ...launchFlight(lastSide, Math.random, lead), op, result: after, readyBeforeCenter: false, counted: false };
     orbs.push(flight); plannedTarget = after; launched++;
     next = elapsed + launchGap(interval(launched, changed), lead);
     burst(flight.x, .98, colors[op], .65);
     sounds.launch(lastSide);
   }
   observeAnticipation(nextSheep(), count);
+  creditCountedSheep(orbs, count);
   for (const orb of orbs) {
     if (advanceFlight(orb, dt) && !orb.crossed) {
       const perfect = isPerfectCrossing(orb, count);
       orb.crossed = true;
+      if (count === orb.result) orb.counted = true;
       if (perfect) {
         perfectHits++; perfectChain++; perfectFlash = 1;
         rage = calmForPerfect(rage); sounds.perfect();
@@ -158,13 +163,14 @@ function tick(dt) {
       $('operation').textContent = orb.op;
       $('operation').style.color = colors[orb.op];
       burst(orb.x, orb.y, colors[orb.op]);
-      sounds.cross(orb.op);
+      sounds.cross(orb.op, { perfect });
     }
     if (Math.floor(orb.age / .025) !== Math.floor((orb.age - dt) / .025)) {
       orb.trail.push({ x: orb.x, y: orb.y });
       if (orb.trail.length > 9) orb.trail.shift();
     }
   }
+  creditCountedSheep(orbs, count);
   orbs = orbs.filter(orb => !flightIsGone(orb));
   for (const p of particles) { p.age += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += .12 * dt; }
   particles = particles.filter(p => p.age < p.life);
@@ -301,7 +307,7 @@ function frame(t) {
   if (status === 'playing') {
     accumulator += dt;
     while (accumulator >= FIXED_STEP && status === 'playing') { tick(FIXED_STEP); accumulator -= FIXED_STEP; }
-    if (status === 'playing') update();
+    if (status === 'playing') { update(); sounds.updateMusic(slowArithmetic(orbs)); }
   }
   draw(visualTime); requestAnimationFrame(frame);
 }

@@ -20,13 +20,13 @@ See [game design](docs/GAME-DESIGN.md) and [roadmap](docs/ROADMAP.md).
 
 ## Files
 
-`index.html`: interface; `src/style.css`: responsive presentation; `src/game.js`: animation, input, lifecycle; `src/rules.js`: arithmetic and balancing; `src/physics.js`: ballistic motion; `src/sound.js`: synthesized sound effects; `src/sheep.js`: shared directional personality renderer; `tests/`: rule regression checks; `docs/`: design and next steps.
+`index.html`: interface; `src/style.css`: responsive presentation; `src/game.js`: animation, input, lifecycle; `src/rules.js`: arithmetic and balancing; `src/physics.js`: ballistic motion; `src/sound.js`: synthesized sound effects; `src/music.js`: original lullaby and music-only room filter; `src/sheep.js`: shared directional personality renderer; `tests/`: rule regression checks; `docs/`: design and next steps.
 
 ## Phone and sound polish
 
 Play uses full-screen left/right touch zones, large thumb targets, safe-area spacing, dynamic viewport sizing, and dedicated portrait/small-phone/landscape layouts. The menu scrolls when vertical space is tight. Fluffy canvas sheep have faces, wool curls, kicking hooves, and upright operation labels; the ballistic simulation and math unlock times are unchanged.
 
-Synthesized pops, launch whistles, chimes, occasional cartoon bleats, danger heartbeats, and win/loss jingles run through Web Audio. Sound starts with the first play gesture; the header mute toggle is saved locally. Audio suspends while paused or backgrounded and resumes on a user gesture. No audio downloads or external sound services are needed. Physical iPhone/Android speaker and browser testing remains a device check; desktop phone-sized previews do not establish that coverage.
+An original lullaby, musical counting chimes, launch whistles, occasional cartoon bleats, danger heartbeats, and win/loss jingles run through Web Audio. Sound starts with the first play gesture; the header mute toggle is saved locally. Audio suspends while paused or backgrounded and resumes on a user gesture. No audio downloads or external sound services are needed. Physical iPhone/Android speaker and browser testing remains a device check; desktop phone-sized previews do not establish that coverage.
 
 ## Public release
 
@@ -41,3 +41,13 @@ Only `index.html` and `src/` are included in the public site artifact.
 The base +1 sheep stays happy. Red −1 sheep are angry, gold ×2 sheep are goofy, and blue ÷2 sheep cry. All face their flight direction without mirroring the math symbols. Taps cycle through C major with softly blended octave layers instead of rising forever. The wolf sits at the exact screen-center anchor during play.
 
 Run the art review at http://localhost:4187/tests/visual-review.html to inspect every personality facing both directions. Rule tests include anticipation timing, perfect percentages, bounded C-major notes, crossing order, and predictive seven-taps-per-second full-night simulations.
+
+## Moonwool lullaby and counted sheep
+
+Moonwool is an original, looping 16-bar lullaby in C major, with a soft bell melody, harp pattern, warm chords, and quiet bass. It stays at 72 BPM in 3/4. A slow ×2 or ÷2 approach smoothly closes a music-only low-pass filter to 480 Hz; it opens back to 9 kHz at the crossing. Effects and counting notes stay clear. Pausing freezes the music position; restarting resets the score. Starting muted and enabling sound later works too.
+
+Taps, ordinary crossing chimes, and perfect chimes share one continuous C-major sequence. Perfects use a longer sparkling tone instead of an unrelated chord, and their crossing does not consume a second note.
+
+A sheep turns delighted once its own total is reached, before or after its crossing, and stays delighted until despawning. Only the next incoming and most recent crossed sheep can receive new credit, so repeated totals do not accidentally credit the whole flock. This visual credit is separate from the existing held-through-crossing perfect timing rule.
+
+Open `/tests/audio-review.html` to render an eighteen-second soundtrack sample through the actual Web Audio synthesizer, including a filter demonstration from seconds 6–11. `/tests/visual-review.html` also shows the counted expressions.

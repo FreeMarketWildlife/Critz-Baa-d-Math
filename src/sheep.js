@@ -3,13 +3,14 @@ export function drawSheep(ctx, orb, x, y, r, color) {
   const ellipse = (x, y, rx, ry, fill, rotation = 0) => {
     ctx.fillStyle = fill; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rotation, 0, Math.PI * 2); ctx.fill();
   };
-  ctx.globalAlpha = orb.crossed ? .88 : 1;
+  const happy = Boolean(orb.counted);
+  ctx.globalAlpha = happy ? 1 : orb.crossed ? .88 : 1;
   const direction = orb.vx < 0 ? -1 : 1;
   ctx.save(); ctx.translate(x, y); ctx.scale(direction, 1);
   // A gentle tumble lets faces stay recognizable while wool and hooves rotate.
   ctx.rotate(Math.sin(orb.angle) * .32);
   const face = '#344454', hoof = '#273748';
-  const kick = Math.sin(orb.age * 14) * .1;
+  const kick = Math.sin(orb.age * (happy ? 22 : 14)) * (happy ? .17 : .1);
   // Four tiny kicking legs and dark rounded hooves.
   for (const [lx, ly, angle] of [[-.55, .63, -.15], [.2, .67, .12], [-.25, .6, .2], [.48, .54, -.1]]) {
     ellipse(lx * r, ly * r, r * .115, r * .3, face, angle + kick);
@@ -17,7 +18,7 @@ export function drawSheep(ctx, orb, x, y, r, color) {
   }
   // Tail and creamy colored wool, shaded underneath and puffed along the rim.
   ellipse(-r * 1.04, -r * .1, r * .26, r * .22, color, -.4);
-  ctx.shadowColor = color; ctx.shadowBlur = orb.crossed ? 0 : 9;
+  ctx.shadowColor = happy ? '#c2f7d2' : color; ctx.shadowBlur = happy ? 14 : orb.crossed ? 0 : 9;
   ellipse(-r * .12, 0, r * 1.05, r * .77, color); ctx.shadowBlur = 0;
   for (let i = 0; i < 12; i++) {
     const a = i / 12 * Math.PI * 2;
@@ -35,7 +36,13 @@ export function drawSheep(ctx, orb, x, y, r, color) {
   ellipse(r * .55, -r * .34, r * .19, r * .07, '#d998a0', -.55);
   ellipse(r * 1.19, -r * .27, r * .16, r * .065, '#d998a0', .6);
   ellipse(r * .87, -r * .03, r * .44, r * .54, face, -.12);
-  for (const [index, ex] of [.71, 1.02].entries()) {
+  if (happy) {
+    ctx.strokeStyle = '#fff4dc'; ctx.lineWidth = r * .055; ctx.lineCap = 'round';
+    for (const ex of [.71, 1.02]) {
+      ctx.beginPath(); ctx.moveTo((ex - .09) * r, -r * .06);
+      ctx.quadraticCurveTo(ex * r, -r * .28, (ex + .09) * r, -r * .06); ctx.stroke();
+    }
+  } else for (const [index, ex] of [.71, 1.02].entries()) {
     const goofy = orb.op === '×2', ey = goofy && index === 1 ? -.2 : -.12;
     ellipse(r * ex, r * ey, r * (goofy && index === 1 ? .13 : .095), r * (goofy ? .15 : .125), '#fff9e8');
     ellipse(r * (ex + (goofy ? (index ? -.035 : .04) : .015)), r * (ey + .015), r * .051, r * .076, '#172638');
@@ -45,7 +52,13 @@ export function drawSheep(ctx, orb, x, y, r, color) {
   ellipse(r * 1.12, r * .17, r * .08, r * .05, '#df99a666');
   ellipse(r * .87, r * .16, r * .055, r * .04, '#dfacb4');
   ctx.strokeStyle = '#b8c6ca'; ctx.lineWidth = r * .04; ctx.lineCap = 'round';
-  if (orb.op === '−1') {
+  if (happy) {
+    // A big open yay mouth and delighted eyes override every original mood.
+    ellipse(r * .87, r * .29, r * .19, r * .17, '#172638');
+    ellipse(r * .87, r * .39, r * .12, r * .065, '#f4a4b7');
+    ctx.strokeStyle = '#fff4dc'; ctx.lineWidth = r * .035;
+    ctx.beginPath(); ctx.moveTo(r * .71, r * .18); ctx.quadraticCurveTo(r * .87, r * .25, r * 1.03, r * .18); ctx.stroke();
+  } else if (orb.op === '−1') {
     // Low inward brows, a cross little frown, and a tiny forehead crease.
     ctx.strokeStyle = '#111e2d'; ctx.lineWidth = r * .08;
     ctx.beginPath(); ctx.moveTo(r * .58, -r * .34); ctx.lineTo(r * .82, -r * .21);
@@ -81,6 +94,14 @@ export function drawSheep(ctx, orb, x, y, r, color) {
   if (orb.op === '×2') {
     ctx.strokeStyle = color; ctx.lineWidth = r * .075;
     ctx.beginPath(); ctx.moveTo(r * .67, -r * .64); ctx.lineTo(r * .5, -r * .99); ctx.lineTo(r * .86, -r * .8); ctx.lineTo(r * 1.01, -r * 1.03); ctx.stroke();
+  }
+  if (happy) {
+    ctx.strokeStyle = '#f6df9b'; ctx.lineWidth = r * .04;
+    const pulse = 1 + Math.sin(orb.age * 7) * .1;
+    for (const [sx, sy, size] of [[1.22, -.78, .12], [.46, -.98, .09]]) {
+      ctx.beginPath(); ctx.moveTo((sx - size * pulse) * r, sy * r); ctx.lineTo((sx + size * pulse) * r, sy * r);
+      ctx.moveTo(sx * r, (sy - size * pulse) * r); ctx.lineTo(sx * r, (sy + size * pulse) * r); ctx.stroke();
+    }
   }
   ctx.restore();
   // The arithmetic stays upright on the sheep's side for quick reading.

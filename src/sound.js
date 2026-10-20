@@ -1,3 +1,4 @@
+import { Lullaby } from './music.js';
 // Diatonic Shepard-style voicing: seven C-major degrees, with octave layers
 // fading around a fixed register. Wraps never drive taps into extreme pitches.
 export function cMajorVoices(step) {
@@ -11,13 +12,13 @@ export function cMajorVoices(step) {
   return voices.map(voice => ({ ...voice, gain: voice.gain / total }));
 }
 
-// Small synthesized toys: no downloads, audio files, or background music.
+// Synthesized toys plus an original lullaby; no audio downloads required.
 // The context is created/resumed only by a start, resume, or sound-button gesture.
 export class DreamSounds {
   constructor() {
     this.enabled = true;
     try { this.enabled = localStorage.getItem('baad-sound') !== 'off'; } catch {}
-    this.context = null;
+    this.context = null; this.music = null;
     this.tapStep = 0;
     this.lastBaa = -1;
     this.lastWarning = -1;
@@ -33,8 +34,10 @@ export class DreamSounds {
         const limiter = this.context.createDynamicsCompressor();
         limiter.threshold.value = -18; limiter.ratio.value = 8;
         this.master.connect(limiter); limiter.connect(this.context.destination);
+        this.music = new Lullaby(this.context, this.master);
       }
       this.context.resume().catch(() => {});
+      if (this.inDream && !this.music.active) this.music.resume();
     } catch { /* The game also works without audio hardware. */ }
   }
   toggle() {
@@ -45,7 +48,7 @@ export class DreamSounds {
   }
   note(frequency, duration = .15, delay = 0, type = 'sine', volume = .18, end = frequency) {
     const c = this.context;
-    if (!this.enabled || !c || c.state !== 'running') return;
+    if (!this.enabled || !c || c.state === 'closed') return;
     const start = c.currentTime + delay, osc = c.createOscillator(), gain = c.createGain();
     osc.type = type; osc.frequency.setValueAtTime(frequency, start);
     osc.frequency.exponentialRampToValueAtTime(Math.max(20, end), start + duration);
@@ -55,24 +58,36 @@ export class DreamSounds {
     osc.connect(gain).connect(this.master); osc.start(start); osc.stop(start + duration + .02);
     osc.onended = () => { osc.disconnect(); gain.disconnect(); };
   }
-  start() { this.tapStep = 0; this.unlock(); [392, 494, 587, 784].forEach((n, i) => this.note(n, .26, i * .085, 'sine', .14)); }
-  tap(direction) {
+  start() {
+    this.tapStep = 0; this.unlock();
+    // A muted start still needs a score ready for the first unmute gesture.
+    if (this.music) this.music.start();
+    this.inDream = true;
+  }
+  playCountNote(direction = 1, kind = 'tap') {
     const step = direction > 0 ? this.tapStep++ : --this.tapStep;
-    for (const voice of cMajorVoices(step)) {
-      if (voice.gain > .002) this.note(voice.frequency, .18, 0, 'sine', voice.gain * .13);
+    const duration = kind === 'perfect' ? .4 : kind === 'cross' ? .23 : .18;
+    const level = kind === 'perfect' ? .15 : kind === 'cross' ? .055 : .13;
+    for (const [i, voice] of cMajorVoices(step).entries()) {
+      if (voice.gain > .002) this.note(voice.frequency, duration,
+        kind === 'perfect' ? i * .008 : 0, 'sine', voice.gain * level);
     }
   }
-  perfect() {
-    [523.251, 659.255, 783.991].forEach((frequency, i) => this.note(frequency, .3, i * .035, 'sine', .055));
+  tap(direction) { this.playCountNote(direction, 'tap'); }
+  perfect() { this.playCountNote(1, 'perfect'); }
+  updateMusic(focused) { if (this.inDream && this.music) this.music.update(focused); }
+  resume() {
+    this.unlock(); this.inDream = true;
+    if (this.music) { if (!this.music.active) this.music.resume(); }
   }
+  stopMusic() { this.inDream = false; if (this.music) this.music.stop(); }
   launch(side) {
     this.note(side < 0 ? 170 : 195, .13, 0, 'sine', .09, 560);
   }
-  cross(op) {
-    const root = { '+1': 660, '−1': 440, '×2': 784, '÷2': 523 }[op];
-    this.note(root, .22, 0, 'sine', .11);
-    this.note(root * 2, .12, .015, 'sine', .025);
-    if (op === '×2' || op === '÷2') this.note(root * (op === '×2' ? 1.5 : .75), .24, .08, 'triangle', .06);
+  cross(op, { perfect = false } = {}) {
+    // Perfect already played the next note. Never overlay an unrelated chord
+    // or consume a second sequence step for the same crossing.
+    if (!perfect) this.playCountNote(1, 'cross');
     const c = this.context;
     if (c && c.currentTime - this.lastBaa > 3.5) { this.lastBaa = c.currentTime; this.baa(); }
   }
@@ -101,8 +116,12 @@ export class DreamSounds {
     this.note(87, .16, 0, 'sine', .13, 70); this.note(78, .2, .22, 'sine', .1, 60);
   }
   finish(win) {
+    this.stopMusic();
     const notes = win ? [523, 659, 784, 1047] : [294, 247, 196, 98];
     notes.forEach((n, i) => this.note(n, win ? .5 : .35, i * .12, 'triangle', .14));
   }
-  pause() { if (this.context) this.context.suspend().catch(() => {}); }
+  pause() {
+    this.inDream = false; if (this.music) this.music.pause();
+    if (this.context) this.context.suspend().catch(() => {});
+  }
 }

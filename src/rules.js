@@ -56,3 +56,11 @@ export function countingError(count, target, incoming) {
   const low = Math.min(target, incoming.result), high = Math.max(target, incoming.result);
   return Math.max(low - count, count - high, 0);
 }
+
+// Credit only the next incoming sheep and the most recent crossed sheep. Matching
+// an old repeated total must not accidentally mark every similar sheep on screen.
+export function creditCountedSheep(flights, count) {
+  const incoming = flights.find(flight => !flight.crossed);
+  const current = flights.findLast(flight => flight.crossed);
+  for (const flight of [incoming, current]) if (flight && count === flight.result) flight.counted = true;
+}

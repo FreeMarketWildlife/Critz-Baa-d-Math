@@ -1,3 +1,4 @@
+import { commitCrossing, transformCount } from './counting.js';
 import { FLOCK, BY_ID, createProgression, planEncounter, displayOperation } from './flock.js';
 import { bindCounting, countTime, encounterPreview } from './controls.js';
 import { readCollection, recordSheep, renderCollection } from './collection.js';
@@ -51,6 +52,7 @@ function screens(id) {
 function begin(m) {
   mode = 'endless'; m = mode; status = 'playing';
   controls.stop();
+  $('double').hidden = $('halve').hidden = true;
   peak = 0; finaleTime = 0; victims = []; biteIndex = -1;
   count = target = plannedTarget = n = launched = elapsed = rage = 0;
   levitation = createLevitation();
@@ -105,6 +107,14 @@ function tap(delta, event) {
   creditCountedSheep(orbs, count);
   sounds.tap(delta); update();
 }
+function transformPlayer(op, button) {
+  if (status !== 'playing' || button.hidden) return;
+  controls.stop();
+  const after = transformCount(count, op);
+  tap(after - count);
+}
+$('double').onclick = () => transformPlayer('×2', $('double'));
+$('halve').onclick = () => transformPlayer('÷2', $('halve'));
 const controls = bindCounting({ minus: $('minus'), plus: $('plus'), tap, active: () => status === 'playing' });
 for (const button of document.querySelectorAll('[data-mode]')) button.onclick = () => begin(button.dataset.mode);
 function pause() {
@@ -183,8 +193,8 @@ function tick(dt) {
       for (const previous of orbs) if (previous !== orb && previous.entered && !previous.crossed) {
         previous.perfectLocked ||= isPerfectCrossing(previous, count);
       }
-      const before = target; target = orb.result; peak = Math.max(peak, target);
-      grace = elapsed + countTime(target - before) + .15;
+      if (orb.op === '×2') $('double').hidden = false;
+      if (orb.op === '÷2') $('halve').hidden = false;
       recordSheep(collection, orb.op, false, storage);
       lastOp = elapsed;
       $('operation').replaceChildren();
@@ -203,7 +213,10 @@ function tick(dt) {
     }
     if (crossedNow && !orb.crossed) {
       const perfect = isPerfectCrossing(orb, count);
-      orb.crossed = true;
+      const before = target;
+      target = commitCrossing(orb, target);
+      peak = Math.max(peak, target);
+      grace = elapsed + countTime(target - before) + .15;
       if (count === orb.result) orb.counted = true;
       if (perfect) {
         perfectHits++; orb.perfectAt = orb.age; orb.bonus = BY_ID[orb.op].bonus; perfectScore += orb.bonus;

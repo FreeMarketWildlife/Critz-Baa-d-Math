@@ -88,3 +88,8 @@ button{min-height:44px}header{top:max(18px,env(safe-area-inset-top));left:max(5%
 #flockGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin-top:20px}.sheep-card{background:#142438;border:1px solid #78909c25;border-radius:16px;padding:8px 10px 16px;text-align:center;min-width:0}.sheep-card canvas{width:100%;height:auto;position:static;display:block}.sheep-card h3{font-size:13px;margin:0 0 8px}.sheep-card p{font-size:11px;color:#afc3d3;margin:6px 0}.sheep-card small{color:#b9c5cf;font-size:10px}.sheep-card.mastered{border-color:#e4cd9170}.sheep-card.mastered small{color:#e4cd91}.sheep-card:not(.discovered){opacity:.65}
 @media(max-width:600px){header{left:5%;right:5%}.brand{font-size:8px;letter-spacing:.2px}.tools{gap:4px}.tools button{font-size:10px;padding:8px 7px;min-width:0}#collection{inset:80px 4% 14px;padding:16px;border-radius:18px}#flockGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.sheep-card h3{font-size:11px}.sheep-card p{font-size:10px}#encounter{font-size:10px}#runScore{top:14%}}
 @media(max-height:500px) and (min-width:601px){#collection{top:75px;padding:16px}#runScore{top:21%;left:42%;width:16%}#encounter{top:38%;font-size:10px}}
+
+/* Independent, smaller shortcuts sit above the full-screen counting zones. */
+.math-control{position:absolute;bottom:calc(18px + env(safe-area-inset-bottom));z-index:3;min-width:48px;min-height:48px;padding:8px 12px;font-size:18px;background:#172b37ed;border-color:#b8d1bd66;border-radius:16px;touch-action:manipulation}
+#halve{left:max(6%,env(safe-area-inset-left));color:#98c7f1}#double{right:max(6%,env(safe-area-inset-right));color:#eac47b}
+@media(max-height:500px){.math-control{bottom:max(8px,env(safe-area-inset-bottom));min-height:44px}}

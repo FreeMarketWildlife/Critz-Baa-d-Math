@@ -59,6 +59,7 @@ function begin(m) {
   perfectHits = perfectScore = 0; introductions = createProgression();
   next = .45; grace = 0; accumulator = 0; orbs = []; particles = []; rings = [];
   $('encounter').textContent = '';
+  $('operation').replaceChildren();
   lastOp = -10; countKick = crossingGlow = tapGlow = 0;
   $('modeLabel').textContent = 'TIME SURVIVED';
   sounds.start();

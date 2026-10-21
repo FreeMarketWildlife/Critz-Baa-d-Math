@@ -8,7 +8,7 @@ import { drawDreamSky, drawGrass } from './dream-sky.js';
 import { slowArithmetic } from './music.js';
 import { FINALE_DURATION, runStats, attackBeat, drawHunter } from './finale.js';
 import { drawSheep } from './sheep.js';
-import { apply, tolerance, stepRage, countColor, observeAnticipation, isPerfectCrossing, calmForPerfect, perfectPercent, countingError, creditCountedSheep } from './rules.js';
+import { apply, tolerance, stepRage, countColor, observeAnticipation, isPerfectCrossing, calmForPerfect, countingError, creditCountedSheep } from './rules.js';
 import { DreamSounds } from './sound.js';
 import { launchFlight, advanceFlight, flightIsGone, FIXED_STEP, launchGap, enterFlight, sheepRadius } from './physics.js';
 
@@ -91,15 +91,9 @@ function finish() {
 function showResult() {
   status = 'result'; screens('result');
   const stats = runStats({ sheep: n, perfect: perfectHits, peak, seconds: elapsed, perfectScore });
-  $('resultTag').textContent = 'THE DREAM IS OVER';
-  $('resultTitle').textContent = 'Counting on dinner.';
   $('stars').textContent = stats.score.toLocaleString();
-  $('resultText').textContent = `100 per sheep + ${perfectScore.toLocaleString()} in perfect bonuses + 10 per second.`;
-  $('statSheep').textContent = n;
-  $('statPerfect').textContent = `${perfectPercent(perfectHits, n)}% (${perfectHits}/${n})`;
-  $('statPeak').textContent = peak;
-  const sec = Math.floor(elapsed);
-  $('statTime').textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  $('resultCount').textContent = count.toLocaleString();
+  $('resultSheep').textContent = target.toLocaleString();
   $('again').focus({ preventScroll: true });
 }
 

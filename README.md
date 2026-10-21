@@ -12,7 +12,7 @@ The current menu starts **endless survival**. A fixed 22-sheep curriculum altern
 
 Sheep pop up from both sides on gravity-driven arcs, spin, and fall back offscreen. Each changes the total once on entry; the center gate scores perfect timing. The fixed-step physics and queued arithmetic support overlapping flights.
 
-White +1, red −1, gold ×2, blue ÷2. Screen redness communicates rage without a rage bar. Sound is optional. The end screen reports survival time, sheep passed, perfect percentage, peak math total, and dream score.
+White +1, red −1, gold ×2, blue ÷2. Screen redness communicates rage without a rage bar. Sound is optional. The end screen shows the score first, then your final count and the actual sheep total after arithmetic operations.
 
 See [game design](docs/GAME-DESIGN.md) and [roadmap](docs/ROADMAP.md).
 

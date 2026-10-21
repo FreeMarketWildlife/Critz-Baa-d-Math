@@ -1,9 +1,16 @@
-// Height is measured in viewport heights. It deliberately has no upper limit.
+// Height is measured in viewport heights. At 3.4, the dream escapes gravity.
+export const SPACE_HEIGHT = 3.4;
 export const LIFT_DELAY = 15;
-export const createLevitation = () => ({ calm: 0, height: 0, velocity: 0, falling: false, fallTime: 0, impact: 0 });
+export const createLevitation = () => ({ calm: 0, height: 0, velocity: 0, falling: false, fallTime: 0, impact: 0, space: false });
 
 export function stepLevitation(state, dt, buildingRage) {
   state.impact = Math.max(0, state.impact - dt * 1.25);
+  if (state.height >= SPACE_HEIGHT && !state.falling) state.space = true;
+  if (state.space) {
+    state.falling = false; state.fallTime = 0;
+    state.velocity = .023; state.height += state.velocity * dt;
+    return 0;
+  }
   if (buildingRage) {
     state.calm = 0;
     if (state.height > 0 && !state.falling) {

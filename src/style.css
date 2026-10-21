@@ -91,3 +91,12 @@ button{min-height:44px}header{top:max(18px,env(safe-area-inset-top));left:max(5%
 
 .legend i .fraction,.legend i .fraction>span{color:#1b2838;font-weight:700}
 .legend i .fraction{font-size:1em;gap:0}
+.tapzones button{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#runScore{position:absolute;top:13%;width:100%;text-align:center;font-size:12px;color:#e4cd91;font-variant-numeric:tabular-nums}
+#encounter{position:absolute;top:24%;width:100%;text-align:center;color:#ecdfb6;font-size:11px;padding:0 10px;pointer-events:none}
+#count{font-size:clamp(42px,9vw,100px);letter-spacing:-2px}
+#collection{position:fixed;inset:95px max(5%,calc((100% - 1050px)/2)) 24px;z-index:6;overflow:auto;background:#0c1828f5;border:1px solid #91aeb533;border-radius:24px;padding:24px;overscroll-behavior:contain}
+.collection-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.collection-heading h2{font-size:32px;letter-spacing:-1px;margin:8px 0}.collection-heading p,.collection-note{font-size:12px;color:#a9bccc}.collection-heading button{padding:10px 16px}
+#flockGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin-top:20px}.sheep-card{background:#142438;border:1px solid #78909c25;border-radius:16px;padding:8px 10px 16px;text-align:center;min-width:0}.sheep-card canvas{width:100%;height:auto;position:static;display:block}.sheep-card h3{font-size:13px;margin:0 0 8px}.sheep-card p{font-size:11px;color:#afc3d3;margin:6px 0}.sheep-card small{color:#b9c5cf;font-size:10px}.sheep-card.mastered{border-color:#e4cd9170}.sheep-card.mastered small{color:#e4cd91}.sheep-card:not(.discovered){opacity:.65}
+@media(max-width:600px){header{left:5%;right:5%}.brand{font-size:8px;letter-spacing:.2px}.tools{gap:4px}.tools button{font-size:10px;padding:8px 7px;min-width:0}#collection{inset:80px 4% 14px;padding:16px;border-radius:18px}#flockGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.sheep-card h3{font-size:11px}.sheep-card p{font-size:10px}#encounter{font-size:10px}#runScore{top:14%}}
+@media(max-height:500px) and (min-width:601px){#collection{top:75px;padding:16px}#runScore{top:21%;left:42%;width:16%}#encounter{top:38%;font-size:10px}}

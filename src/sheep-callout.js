@@ -25,10 +25,12 @@ export function drawPerfectBubble(ctx, orb, w, h, r, reduced = false) {
   ctx.font = `700 ${w < 600 ? 21 : 25}px 'Space Grotesk',sans-serif`;
   ctx.lineJoin = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = '#142331';
   ctx.shadowColor = '#e9d58c88'; ctx.shadowBlur = 12;
-  ctx.strokeText('Perfect', 0, 0);
+  const label = orb.bonus ? `Perfect +${orb.bonus}` : 'Perfect';
+  if (orb.bonus) ctx.font = `700 ${w < 600 ? 15 : 18}px 'Space Grotesk',sans-serif`;
+  ctx.strokeText(label, 0, 0);
   const gold = ctx.createLinearGradient(0, -14, 0, 14);
   gold.addColorStop(0, '#fff9de'); gold.addColorStop(1, '#e4c576');
-  ctx.fillStyle = gold; ctx.fillText('Perfect', 0, 0); ctx.shadowBlur = 0;
+  ctx.fillStyle = gold; ctx.fillText(label, 0, 0); ctx.shadowBlur = 0;
   ctx.strokeStyle = '#f4df9a'; ctx.lineWidth = 1.5;
   for (let i = 0; i < 6; i++) {
     const angle = i / 6 * Math.PI * 2, distance = 10 + Math.min(age * 70, 32);

@@ -34,7 +34,7 @@ test('a broken airborne streak falls under gravity and lands without adding any 
 test('grounded mistakes reset the streak without adding a fall penalty; new runs start grounded', () => {
   const s = createLevitation(); advance(s, 9);
   assert.equal(advance(s, 1, true), 0); assert.equal(s.calm, 0); assert.equal(s.falling, false);
-  assert.deepEqual(createLevitation(), { calm: 0, height: 0, velocity: 0, falling: false, fallTime: 0, impact: 0 });
+  assert.deepEqual(createLevitation(), { calm: 0, height: 0, velocity: 0, falling: false, fallTime: 0, impact: 0, space: false });
 });
 
 test('a fall hangs briefly before accelerating into a dramatic plunge', () => {
@@ -45,4 +45,13 @@ test('a fall hangs briefly before accelerating into a dramatic plunge', () => {
   advance(s, 1);
   assert.ok(s.velocity < -.3);
   assert.equal(s.falling, true);
+});
+
+
+test('escape boundary makes orbit permanent even when rage builds; restart restores gravity', () => {
+  const s = createLevitation();
+  advance(s, 220); assert.equal(s.space, true);
+  const height = s.height;
+  advance(s, 30, true); assert.equal(s.falling, false); assert.ok(s.height > height);
+  assert.equal(createLevitation().space, false);
 });

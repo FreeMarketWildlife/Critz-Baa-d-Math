@@ -64,7 +64,7 @@ export class DreamSounds {
   start() {
     this.tapStep = 0; this.perfectStep = 0; this.unlock();
     // A muted start still needs a score ready for the first unmute gesture.
-    if (this.music) this.music.start();
+    if (this.music) { this.music.setSpace(false); this.music.start(); }
     if (this.ambience) this.ambience.start();
     this.inDream = true;
   }
@@ -96,9 +96,9 @@ export class DreamSounds {
     this.note(frequency * 2, .48, .055, 'triangle', .022);
     this.note(frequency * 2, .34, .14, 'sine', .018);
   }
-  updateMusic(focused, height = 0) {
+  updateMusic(focused, height = 0, space = false) {
     if (!this.inDream) return;
-    if (this.music) this.music.update(focused);
+    if (this.music) { this.music.setSpace(space); this.music.update(focused); }
     if (this.ambience) this.ambience.update(height);
   }
   resume() {

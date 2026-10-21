@@ -1,7 +1,7 @@
 // Short, deterministic choreography. Sheep renderers stay owned by sheep.js.
 export const FINALE_DURATION = 2.2;
-export function runStats({ sheep, perfect, peak, seconds }) {
-  return { sheep, perfect, peak, seconds, score: sheep * 100 + perfect * 50 + Math.floor(seconds) * 10 };
+export function runStats({ sheep, perfect, peak, seconds, perfectScore = perfect * 50 }) {
+  return { sheep, perfect, peak, seconds, score: sheep * 100 + perfectScore + Math.floor(seconds) * 10 };
 }
 export function attackBeat(time, total) {
   const slot = 1.05 / Math.max(1, total);

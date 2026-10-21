@@ -1,3 +1,4 @@
+import { BY_ID } from './flock.js';
 // Moonwool — an original 16-bar, 3/4 lullaby at 72 BPM.
 // All voices pass through the music-only room filter; gameplay chimes stay clear.
 export const BEAT = 60 / 72;
@@ -34,8 +35,23 @@ export function lullabyScore() {
   });
   return events.sort((a, b) => a.time - b.time);
 }
+// Starwake: original syncopated synth arpeggios over suspended, wide pads.
+// Same loop duration lets the transition preserve the current musical position.
+export function spaceScore() {
+  const events = [];
+  const roots = [45, 41, 48, 43, 45, 41, 38, 43, 45, 48, 41, 43, 38, 41, 43, 45];
+  roots.forEach((root, bar) => {
+    const start = bar * BAR;
+    const add = (offset, duration, note, kind, volume) => events.push({ time: start + offset, duration, frequency: midi(note), kind, volume });
+    add(0, BAR*.98, root-12, 'bass', .11);
+    for (const n of [root+12,root+19,root+26]) add(0,BAR*1.3,n,'pad',.038);
+    [0,7,12,14,19,12,7,14,24,19,14,7].forEach((note,i) => add(i*BAR/12,.3,root+12+note,'synth',.055+(i%3===0?.018:0)));
+    for (const i of [0,3,6,9]) add(i*BAR/12,.08,root-12,'pulse',.1);
+  });
+  return events.sort((a,b)=>a.time-b.time);
+}
 export const slowArithmetic = flights => flights.some(flight => !flight.crossed &&
-  (flight.op === '×2' || flight.op === '÷2') && flight.crossingTime > .81);
+  ((BY_ID[flight.op]?.slow ?? 1) > 1) && flight.crossingTime > .81);
 
 export function musicRoom(context, destination) {
   const input = context.createGain(), filter = context.createBiquadFilter(), output = context.createGain();
@@ -75,7 +91,7 @@ export function scheduleMusicNote(context, destination, event, at, duration = ev
     event.kind === 'harp' ? [[1, .9], [2, .06]] : [[1, 1]];
   for (const [multiple, level] of partials) {
     const oscillator = context.createOscillator(), partial = context.createGain();
-    oscillator.type = 'sine'; oscillator.frequency.value = event.frequency * multiple;
+    oscillator.type = event.kind === 'synth' ? 'triangle' : 'sine'; oscillator.frequency.value = event.frequency * multiple;
     partial.gain.value = level; oscillator.connect(partial).connect(gain);
     oscillator.start(at); oscillator.stop(at + duration + release + .03);
     nodes.push(oscillator, partial);
@@ -90,6 +106,12 @@ export class Lullaby {
   constructor(context, destination) {
     this.context = context; this.room = musicRoom(context, destination); this.score = lullabyScore();
     this.active = false; this.position = 0; this.cursor = 0; this.cycle = 0; this.voices = new Set(); this.focused = false;
+  }
+  setSpace(space) {
+    if (Boolean(space) === Boolean(this.space)) return;
+    const active = this.active; this.pause(); this.space = Boolean(space);
+    this.score = this.space ? spaceScore() : lullabyScore();
+    if (active) this.resume();
   }
   clearVoices() { this.voices.forEach(voice => voice.stop()); this.voices.clear(); }
   start() { this.stop(); this.position = 0; this.resume(); }

@@ -77,11 +77,11 @@ export function drawDreamSky(ctx, w, h, height, time, stars) {
   ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
   for (const s of stars) {
     ctx.globalAlpha = .18 + (.5 + .5 * Math.sin(time * .18 + s.phase)) * .4;
-    oval(ctx, s.x * w, ((s.y + height * .003) % 1) * h, s.r * .8, s.r * .8, '#c8d8df');
+    oval(ctx, s.x * w, ((s.y + Math.log1p(height) * .00035) % 1) * h, s.r * .8, s.r * .8, '#c8d8df');
   }
   ctx.globalAlpha = 1;
   // Skybox bodies barely move with altitude: Kronos is enormous and far away.
-  const skyShift = Math.log1p(height) * h * .012;
+  const skyShift = Math.log1p(height) * h * .0012;
   ctx.save(); ctx.globalAlpha = .13 + space * .32;
   planet(ctx, w * .12, -h * .16 + skyShift, Math.max(w * .58, h * .68), '#d9b889', true);
   ctx.restore();
@@ -105,9 +105,29 @@ export function drawDreamSky(ctx, w, h, height, time, stars) {
     halo(ctx, w * .82, h * .045, Math.min(w, h) * .10, '#ffba722b');
     oval(ctx, w * .82, h * .045, Math.min(w, h) * .012, Math.min(w, h) * .012, '#ffce98'); ctx.restore();
   }
+  // Nearby wisps convey ascent while the celestial skybox stays almost fixed.
+  if (height > .15) {
+    ctx.save();
+    for (let i = 0; i < 6; i++) {
+      const y = ((seed(i+700) + height * .19) % 1.5 - .2) * h;
+      ctx.globalAlpha = Math.min(.08, height * .08) * (height > 3.4 ? .4 : 1);
+      oval(ctx, w * seed(i+720), y, w * (.22 + seed(i+730)*.2), h * .025, '#b9cfe5');
+    }
+    if (space > .3) {
+      const phase = (time + 7) % 19;
+      if (phase < .65) {
+        const x = w * (.16 + phase * .6), y = h * (.12 + phase * .2);
+        ctx.globalAlpha = Math.sin(phase / .65 * Math.PI) * .65;
+        ctx.strokeStyle = '#d2e8ff'; ctx.lineWidth = 1.2;
+        ctx.beginPath();ctx.moveTo(x-w*.08,y-h*.025);ctx.lineTo(x,y);ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
   if (height > 1.3) {
-    const r = Math.max(h * .16, h * 2.8 / (1 + height * .48));
-    const cy = h * .98 + r - Math.min(h * .32, (height - 1.3) * h * .10);
+    const altitude = Math.min(height, 3.4);
+    const r = Math.max(h * .16, h * 2.8 / (1 + altitude * .48));
+    const cy = h * .98 + r - Math.min(h * .32, (altitude - 1.3) * h * .10);
     ctx.save(); ctx.globalAlpha = smooth((height - 1.3) / 1.5) * .75;
     ctx.shadowBlur = 15; ctx.shadowColor = '#83c7ce';
     oval(ctx, w * .5, cy, r * 1.006, r * 1.006, '#83c7ce60'); ctx.shadowBlur = 0;

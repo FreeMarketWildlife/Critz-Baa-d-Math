@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { lullabyScore, LOOP_LENGTH, BAR, slowArithmetic, Lullaby, musicRoom } from '../src/music.js';
+import { lullabyScore, spaceScore, LOOP_LENGTH, BAR, slowArithmetic, Lullaby, musicRoom } from '../src/music.js';
 import { DreamSounds, cMajorVoices } from '../src/sound.js';
 import { creditCountedSheep } from '../src/rules.js';
 
@@ -99,4 +99,16 @@ test('a muted start, later unmute, paused sound preview, and resume keep one mus
     sounds.resume(); assert.equal(sounds.music, music); assert.equal(music.active, true);
     sounds.stopMusic(); assert.equal(music.active, false);
   } finally { if (previousWindow === undefined) delete globalThis.window; else globalThis.window = previousWindow; }
+});
+
+
+test('space music has a distinct synth score and switches without losing position or pause state', () => {
+  const c = fakeContext(), music = new Lullaby(c,c.createGain());
+  assert.ok(spaceScore().some(e=>e.kind==='synth'));
+  assert.notDeepEqual(spaceScore(),lullabyScore());
+  music.start();c.currentTime=12;music.update();
+  music.setSpace(true);assert.equal(music.space,true);assert.equal(music.active,true);
+  assert.ok(Math.abs(music.position-11.95)<.001);
+  music.pause();music.setSpace(false);assert.equal(music.active,false);
+  assert.deepEqual(music.score,lullabyScore());
 });

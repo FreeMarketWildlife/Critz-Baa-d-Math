@@ -1,17 +1,22 @@
-import { createIntroductions, nextEncounter, waveInterval } from './pacing.js';
+import { FLOCK, BY_ID, createProgression, planEncounter, displayOperation } from './flock.js';
+import { bindCounting, countTime, encounterPreview } from './controls.js';
+import { readCollection, recordSheep, renderCollection } from './collection.js';
+import { waveInterval } from './pacing.js';
 import { drawPerfectBubble } from './sheep-callout.js';
 import { createLevitation, stepLevitation, cameraHeight } from './levitation.js';
 import { drawDreamSky, drawGrass } from './dream-sky.js';
 import { slowArithmetic } from './music.js';
 import { FINALE_DURATION, runStats, attackBeat, drawHunter } from './finale.js';
 import { drawSheep } from './sheep.js';
-import { apply, tolerance, chooseOperation, catchUpGrace, starsFor, stepRage, countColor, observeAnticipation, isPerfectCrossing, calmForPerfect, perfectPercent, countingError, creditCountedSheep } from './rules.js';
+import { apply, tolerance, stepRage, countColor, observeAnticipation, isPerfectCrossing, calmForPerfect, perfectPercent, countingError, creditCountedSheep } from './rules.js';
 import { DreamSounds } from './sound.js';
-import { launchFlight, advanceFlight, flightIsGone, FIXED_STEP, previewTime, launchGap, enterFlight, sheepRadius } from './physics.js';
+import { launchFlight, advanceFlight, flightIsGone, FIXED_STEP, launchGap, enterFlight, sheepRadius } from './physics.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('night'), ctx = canvas.getContext('2d');
-const colors = { '+1': '#f2efdf', '−1': '#f58992', '×2': '#eac47b', '÷2': '#98c7f1' };
+const colors = Object.fromEntries(FLOCK.map(s => [s.id, s.color]));
+let storage; try { storage = localStorage; } catch {}
+const collection = readCollection(storage);
 const stars = Array.from({ length: 130 }, () => ({
   x: Math.random(), y: Math.random() * .8, r: Math.random() * 1.4 + .3, phase: Math.random() * 6,
 }));
@@ -20,8 +25,8 @@ let mode = 'endless', status = 'menu', count = 0, target = 0, plannedTarget = 0;
 let peak = 0, finaleTime = 0, victims = [], biteIndex = -1;
 let levitation = createLevitation();
 let n = 0, launched = 0, elapsed = 0, rage = 0;
-let perfectHits = 0;
-let introductions = createIntroductions();
+let perfectHits = 0, perfectScore = 0;
+let introductions = createProgression();
 let next = .45, grace = 0, orbs = [], particles = [], rings = [], lastSide = 1;
 const sounds = new DreamSounds();
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -36,19 +41,22 @@ function resize() {
 addEventListener('resize', resize); resize();
 
 function screens(id) {
-  for (const name of ['menu', 'play', 'result', 'paused']) $(name).hidden = name !== id;
+  for (const name of ['menu', 'play', 'result', 'paused', 'collection']) $(name).hidden = name !== id;
   $('footer').hidden = id === 'play';
   $('pause').disabled = id !== 'play';
+  $('collectionButton').disabled = id === 'finale' || id === 'collection';
   $('danger').style.opacity = id === 'play' ? rage * .85 : 0;
 }
 
 function begin(m) {
   mode = 'endless'; m = mode; status = 'playing';
+  controls.stop();
   peak = 0; finaleTime = 0; victims = []; biteIndex = -1;
   count = target = plannedTarget = n = launched = elapsed = rage = 0;
   levitation = createLevitation();
-  perfectHits = 0; introductions = createIntroductions();
+  perfectHits = perfectScore = 0; introductions = createProgression();
   next = .45; grace = 0; accumulator = 0; orbs = []; particles = []; rings = [];
+  $('encounter').textContent = '';
   lastOp = -10; countKick = crossingGlow = tapGlow = 0;
   $('modeLabel').textContent = 'TIME SURVIVED';
   sounds.start();
@@ -57,15 +65,15 @@ function begin(m) {
 
 function nextSheep() { return orbs.findLast(orb => orb.entered && !orb.crossed); }
 function update() {
-  const duration = mode === 'demo' ? 60 : 180;
   const seconds = Math.floor(elapsed);
   $('time').textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   $('count').textContent = count;
   $('count').style.color = countColor(count, target);
   $('count').style.transform = `scale(${1 + countKick * .08})`;
   $('sheep').textContent = n;
-  $('state').textContent = levitation.falling ? 'FALLING' : levitation.height > 0 ? 'DREAMING HIGHER' : rage > .7 ? 'WAKING UP' : rage > .3 ? 'RESTLESS' : 'SOUND ASLEEP';
-  $('feedback').textContent = rage > .7 ? 'The dream is slipping…' : rage > .3 ? 'Find your rhythm.' : 'Keep the dream alive.';
+  $('runScore').textContent = (n * 100 + perfectScore + Math.floor(elapsed) * 10).toLocaleString();
+  $('state').textContent = levitation.space ? 'DRIFTING IN SPACE' : levitation.falling ? 'FALLING' : levitation.height > 0 ? 'DREAMING HIGHER' : rage > .7 ? 'WAKING UP' : rage > .3 ? 'RESTLESS' : 'SOUND ASLEEP';
+  $('feedback').textContent = levitation.space && rage < .3 ? 'Beyond gravity. Negative counts unlocked.' : rage > .7 ? 'The dream is slipping…' : rage > .3 ? 'Find your rhythm.' : 'Keep the dream alive.';
   $('danger').style.opacity = rage * (.65 + .2 * Math.sin(visualTime * (4 + rage * 5)));
   $('operation').style.opacity = Math.max(0, 1 - (elapsed - lastOp) / .65);
   $('operation').style.transform = `translate(-50%, ${-(elapsed - lastOp) * 12}px)`;
@@ -75,17 +83,18 @@ function update() {
 }
 
 function finish() {
+  controls.stop();
   status = 'finale'; finaleTime = 0; accumulator = 0; biteIndex = -1;
   victims = orbs.map(orb => ({ ...orb, trail: [] }));
   screens('finale'); sounds.finish(false);
 }
 function showResult() {
   status = 'result'; screens('result');
-  const stats = runStats({ sheep: n, perfect: perfectHits, peak, seconds: elapsed });
+  const stats = runStats({ sheep: n, perfect: perfectHits, peak, seconds: elapsed, perfectScore });
   $('resultTag').textContent = 'THE DREAM IS OVER';
   $('resultTitle').textContent = 'Counting on dinner.';
   $('stars').textContent = stats.score.toLocaleString();
-  $('resultText').textContent = '100 per sheep passed + 50 per perfect + 10 per second survived.';
+  $('resultText').textContent = `100 per sheep + ${perfectScore.toLocaleString()} in perfect bonuses + 10 per second.`;
   $('statSheep').textContent = n;
   $('statPerfect').textContent = `${perfectPercent(perfectHits, n)}% (${perfectHits}/${n})`;
   $('statPeak').textContent = peak;
@@ -96,25 +105,23 @@ function showResult() {
 
 function tap(delta, event) {
   if (status !== 'playing') return;
-  count += delta; countKick = 1; tapGlow = 1; tapSide = delta;
+  count = levitation.space ? count + delta : Math.max(0, count + delta); countKick = 1; tapGlow = 1; tapSide = delta;
   rings.push({ x: event?.clientX ?? w * (delta > 0 ? .78 : .22), y: event?.clientY ?? h * .78, age: 0 });
   observeAnticipation(nextSheep(), count);
   creditCountedSheep(orbs, count);
   sounds.tap(delta); update();
 }
-for (const [id, delta] of [['minus', -1], ['plus', 1]]) {
-  $(id).addEventListener('pointerdown', e => { e.preventDefault(); tap(delta, e); });
-  $(id).onclick = e => { if (e.detail === 0) tap(delta); };
-}
+const controls = bindCounting({ minus: $('minus'), plus: $('plus'), tap, active: () => status === 'playing' });
 for (const button of document.querySelectorAll('[data-mode]')) button.onclick = () => begin(button.dataset.mode);
 function pause() {
   if (status !== 'playing') return;
+  controls.stop();
   status = 'paused'; accumulator = 0; sounds.pause(); screens('paused');
 }
 $('pause').onclick = pause;
 $('resume').onclick = () => { sounds.resume(); status = 'playing'; accumulator = 0; screens('play'); };
 function home() {
-  sounds.stopMusic();
+  controls.stop(); sounds.stopMusic();
   levitation = createLevitation();
   status = 'menu'; orbs = []; particles = []; rings = []; screens('menu');
   $('best').textContent = '';
@@ -128,13 +135,24 @@ function soundLabel() {
 $('sound').onclick = () => { sounds.toggle(); soundLabel(); if (sounds.enabled) sounds.baa(); };
 soundLabel();
 addEventListener('keydown', e => {
-  if (!['ArrowLeft', 'ArrowRight', 'a', 'd', 'A', 'D', 'Escape', ' '].includes(e.key)) return;
+  if (!['Escape', ' '].includes(e.key) || e.repeat) return;
   if (e.target.tagName === 'BUTTON' && e.key === ' ') return;
   e.preventDefault();
-  if (e.key === 'Escape' || e.key === ' ') {
-    if (status === 'playing') pause(); else if (status === 'paused') $('resume').click();
-  } else tap(['ArrowLeft', 'a', 'A'].includes(e.key) ? -1 : 1);
+  if (status === 'collection') $('closeCollection').click();
+  else if (status === 'playing') pause(); else if (status === 'paused') $('resume').click();
 });
+let collectionReturn = 'menu';
+function openCollection() {
+  if (status === 'finale' || status === 'collection') return;
+  collectionReturn = status;
+  if (status === 'playing') { pause(); collectionReturn = 'paused'; }
+  controls.stop(); status = 'collection'; renderCollection($('flockGrid'), collection);
+  const entries = Object.values(collection);
+  $('collectionSummary').textContent = `${entries.filter(e => e.seen).length}/${FLOCK.length} seen · ${entries.filter(e => e.perfect).length}/${FLOCK.length} perfected`;
+  screens('collection'); $('closeCollection').focus();
+}
+$('collectionButton').onclick = openCollection;
+$('closeCollection').onclick = () => { status = collectionReturn; screens(status === 'result' ? 'result' : status === 'paused' ? 'paused' : 'menu'); $('collectionButton').focus(); };
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
 
 function burst(x, y, color, size = 1) {
@@ -145,18 +163,19 @@ function burst(x, y, color, size = 1) {
 }
 
 function tick(dt) {
-  elapsed += dt;
+  elapsed += dt; controls.step(dt);
   // Plan against every airborne operation, not just those that already crossed.
   // Extended previews delay subsequent launches so overlapping crossings stay ordered.
   if (elapsed >= next) {
-    const op = nextEncounter(introductions, orbs, () => chooseOperation(elapsed, plannedTarget));
+    const op = planEncounter(introductions, orbs, plannedTarget, { elapsed, height: levitation.height, space: levitation.space });
     if (op !== null) {
       const after = apply(plannedTarget, op), changed = after - plannedTarget;
       lastSide = Math.random() < .78 ? -lastSide : lastSide;
-      const lead = previewTime(changed);
+      const type = BY_ID[op];
+      const lead = encounterPreview(type, changed);
       const flight = { ...launchFlight(lastSide, Math.random, lead), op, result: after, readyBeforeCenter: false, counted: false, entered: false };
       orbs.push(flight); plannedTarget = after; launched++;
-      next = elapsed + launchGap(waveInterval(elapsed, changed), lead);
+      next = elapsed + launchGap(waveInterval(elapsed, 0) + Math.max(0, countTime(changed) - .4), lead);
       burst(flight.x, .98, colors[op], .65);
       sounds.launch(lastSide);
     }
@@ -171,17 +190,20 @@ function tick(dt) {
         previous.perfectLocked ||= isPerfectCrossing(previous, count);
       }
       const before = target; target = orb.result; peak = Math.max(peak, target);
-      grace = elapsed + catchUpGrace(target - before);
+      grace = elapsed + countTime(target - before) + .15;
+      recordSheep(collection, orb.op, false, storage);
       lastOp = elapsed;
       $('operation').replaceChildren();
-      if (orb.op === '÷2') {
+      const type = BY_ID[orb.op];
+      if (type.fraction) {
         const fraction = document.createElement('span');
-        fraction.className = 'fraction'; fraction.setAttribute('aria-label', 'one half');
-        for (const digit of ['1', '2']) {
-          const part = document.createElement('span'); part.textContent = digit; fraction.append(part);
+        fraction.className = 'fraction'; fraction.setAttribute('aria-label', `${type.fraction[0]} over ${type.fraction[1]}`);
+        for (const digit of type.fraction) {
+          const part = document.createElement('span'); part.textContent = String(digit).replace('-', '−'); fraction.append(part);
         }
         $('operation').append(fraction);
-      } else $('operation').textContent = orb.op;
+      } else $('operation').textContent = displayOperation(orb.op);
+      $('encounter').textContent = introductions.solo ? `NEW: ${type.name} · ${displayOperation(type.id)} · Perfect +${type.bonus}` : '';
       $('operation').style.color = colors[orb.op];
       observeAnticipation(orb, count);
     }
@@ -190,7 +212,8 @@ function tick(dt) {
       orb.crossed = true;
       if (count === orb.result) orb.counted = true;
       if (perfect) {
-        perfectHits++; orb.perfectAt = orb.age;
+        perfectHits++; orb.perfectAt = orb.age; orb.bonus = BY_ID[orb.op].bonus; perfectScore += orb.bonus;
+        recordSheep(collection, orb.op, true, storage);
         rage = calmForPerfect(rage); sounds.perfect();
       }
       observeAnticipation(nextSheep(), count);
@@ -209,6 +232,7 @@ function tick(dt) {
   particles = particles.filter(p => p.age < p.life);
   for (const ring of rings) ring.age += dt;
   rings = rings.filter(ring => ring.age < .4);
+  if (!introductions.solo) $('encounter').textContent = '';
   const error = countingError(count, target);
   const buildingRage = stepRage(0, error, tolerance(n), dt, elapsed <= grace) > 0;
   stepLevitation(levitation, dt, buildingRage);
@@ -369,7 +393,7 @@ function drawOrb(orb) {
     ctx.moveTo(orb.trail[i - 1].x * w, orb.trail[i - 1].y * h);
     ctx.lineTo(orb.trail[i].x * w, orb.trail[i].y * h); ctx.stroke();
   }
-  drawSheep(ctx, orb, orb.x * w, orb.y * h, r, color);
+  drawSheep(ctx, orb, orb.x * w, orb.y * h, r, color, reducedMotion.matches);
 }
 
 function frame(t) {
@@ -378,7 +402,7 @@ function frame(t) {
   if (status === 'playing') {
     accumulator += dt;
     while (accumulator >= FIXED_STEP && status === 'playing') { tick(FIXED_STEP); accumulator -= FIXED_STEP; }
-    if (status === 'playing') { update(); sounds.updateMusic(slowArithmetic(orbs), levitation.height); }
+    if (status === 'playing') { update(); sounds.updateMusic(slowArithmetic(orbs), levitation.height, levitation.space); }
   }
   if (status === 'finale') {
     finaleTime += dt;

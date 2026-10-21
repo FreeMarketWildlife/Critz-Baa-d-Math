@@ -1,6 +1,5 @@
-export const apply = (value, op) => ({
-  '+1': value + 1, '−1': value - 1, '×2': value * 2, '÷2': value / 2,
-})[op];
+import { resultOf } from './flock.js';
+export const apply = resultOf;
 
 export const tolerance = n => 10 + Math.min(6, Math.floor(n / 25));
 

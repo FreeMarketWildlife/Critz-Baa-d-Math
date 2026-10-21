@@ -1,3 +1,4 @@
+import { drawPerfectBubble } from './sheep-callout.js';
 import { createLevitation, stepLevitation, cameraHeight } from './levitation.js';
 import { drawDreamSky, drawGrass } from './dream-sky.js';
 import { slowArithmetic } from './music.js';
@@ -18,7 +19,7 @@ let mode = 'endless', status = 'menu', count = 0, target = 0, plannedTarget = 0;
 let peak = 0, finaleTime = 0, victims = [], biteIndex = -1;
 let levitation = createLevitation();
 let n = 0, launched = 0, elapsed = 0, rage = 0;
-let perfectHits = 0, perfectChain = 0, perfectFlash = 0;
+let perfectHits = 0;
 let next = .45, grace = 0, orbs = [], particles = [], rings = [], lastSide = 1;
 const sounds = new DreamSounds();
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -44,7 +45,7 @@ function begin(m) {
   peak = 0; finaleTime = 0; victims = []; biteIndex = -1;
   count = target = plannedTarget = n = launched = elapsed = rage = 0;
   levitation = createLevitation();
-  perfectHits = perfectChain = perfectFlash = 0;
+  perfectHits = 0;
   next = .45; grace = 0; accumulator = 0; orbs = []; particles = []; rings = [];
   lastOp = -10; countKick = crossingGlow = tapGlow = 0;
   $('modeLabel').textContent = 'TIME SURVIVED';
@@ -53,7 +54,6 @@ function begin(m) {
 }
 
 function nextSheep() { return orbs.findLast(orb => orb.entered && !orb.crossed); }
-function readyAhead() { const sheep = nextSheep(); return sheep && count === sheep.result; }
 function update() {
   const duration = mode === 'demo' ? 60 : 180;
   const seconds = Math.floor(elapsed);
@@ -63,8 +63,6 @@ function update() {
   $('count').style.transform = `scale(${1 + countKick * .08})`;
   $('sheep').textContent = n;
   $('state').textContent = levitation.falling ? 'FALLING' : levitation.height > 0 ? 'DREAMING HIGHER' : rage > .7 ? 'WAKING UP' : rage > .3 ? 'RESTLESS' : 'SOUND ASLEEP';
-  $('perfect').textContent = perfectFlash > .1 ? `✧ PERFECT${perfectChain > 1 ? ' ×' + perfectChain : ''}` : readyAhead() ? '✧ READY' : '';
-  $('perfect').style.opacity = perfectFlash > .1 || readyAhead() ? 1 : 0;
   $('feedback').textContent = rage > .7 ? 'The dream is slipping…' : rage > .3 ? 'Find your rhythm.' : 'Keep the dream alive.';
   $('danger').style.opacity = rage * (.65 + .2 * Math.sin(visualTime * (4 + rage * 5)));
   $('operation').style.opacity = Math.max(0, 1 - (elapsed - lastOp) / .65);
@@ -180,9 +178,9 @@ function tick(dt) {
       orb.crossed = true;
       if (count === orb.result) orb.counted = true;
       if (perfect) {
-        perfectHits++; perfectChain++; perfectFlash = 1;
+        perfectHits++; orb.perfectAt = orb.age;
         rage = calmForPerfect(rage); sounds.perfect();
-      } else perfectChain = 0;
+      }
       observeAnticipation(nextSheep(), count);
       n++; crossingGlow = 1;
       burst(orb.x, orb.y, colors[orb.op]);
@@ -201,12 +199,10 @@ function tick(dt) {
   rings = rings.filter(ring => ring.age < .4);
   const error = countingError(count, target);
   const buildingRage = stepRage(0, error, tolerance(n), dt, elapsed <= grace) > 0;
-  const landingRage = stepLevitation(levitation, dt, buildingRage);
-  // Finish the fall before the impact can wake him. Counting still continues.
+  stepLevitation(levitation, dt, buildingRage);
+  // Keep counting during the fall; falling and landing never add rage.
   if (!levitation.falling) rage = stepRage(rage, error, tolerance(n), dt, elapsed <= grace);
-  rage = Math.min(1, rage + landingRage);
   if (rage > .7) sounds.warning();
-  perfectFlash = Math.max(0, perfectFlash - dt);
   countKick *= Math.exp(-dt * 13); crossingGlow *= Math.exp(-dt * 7); tapGlow *= Math.exp(-dt * 10);
   if (rage >= 1) finish(false);
 
@@ -295,6 +291,7 @@ function draw(time) {
     ctx.beginPath(); ctx.moveTo(w * .5, h * .26); ctx.lineTo(w * .5, h * .43);
     ctx.moveTo(w * .5, h * .57); ctx.lineTo(w * .5, h * .76); ctx.stroke(); ctx.setLineDash([]);
     for (const orb of orbs) drawOrb(orb);
+    for (const orb of orbs) drawPerfectBubble(ctx, orb, w, h, sheepRadius(w), reducedMotion.matches);
     for (const p of particles) {
       ctx.globalAlpha = (1 - p.age / p.life) * .7;
       ellipse(p.x * w, p.y * h, 2, 2, p.color);

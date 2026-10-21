@@ -53,8 +53,8 @@ button{min-height:44px}header{top:max(18px,env(safe-area-inset-top));left:max(5%
   .tapzones button{padding-bottom:max(35px,env(safe-area-inset-bottom));gap:5px}.tapzones b{width:55px;height:48px;font-size:30px}.tapzones span{font-size:8px}
   #result,#paused{left:7%;top:54%;width:55%;max-height:calc(100dvh - 90px);overflow-y:auto}h2{font-size:36px;margin:14px 0}.panel>p{font-size:12px}.panel>button{min-height:44px;padding:10px 14px}
 }
-#perfect{position:absolute;top:56%;left:50%;transform:translateX(-50%);font-size:12px;font-weight:600;letter-spacing:2px;color:#e5d69d;pointer-events:none;white-space:nowrap;transition:opacity .12s}
-@media(max-height:500px) and (max-width:1000px){#perfect{top:52%;font-size:9px}#operation{top:39%}}
+
+@media(max-height:500px) and (max-width:1000px){#operation{top:39%}}
 /* A torn bedtime scorecard, with the fed wolf watching from the hillside. */
 #result{background:linear-gradient(135deg,#172932f5,#10202af2);border:1px solid #c4d4b547;border-radius:34px 12px 36px 12px;padding:30px;box-shadow:0 22px 90px #0007;width:min(490px,86%)}
 #result .eyebrow{color:#eda9a0}#result h2{font-size:clamp(32px,5vw,55px);margin:18px 0 22px;letter-spacing:-2px}#result #stars{font-size:48px;letter-spacing:-2px;color:#edcf91;font-variant-numeric:tabular-nums}.score-label{font-size:9px;letter-spacing:3px;color:#b2c7bd}.result-stats{display:grid;grid-template-columns:1fr 1fr;gap:18px 24px;border-top:1px dashed #a5bba544;border-bottom:1px dashed #a5bba544;padding:20px 0;margin-top:18px}.result-stats div{display:flex;flex-direction:column;gap:5px}.result-stats strong{font-size:25px;font-family:'Space Grotesk',sans-serif;color:#e1e6d4}.result-stats span{font-size:11px;color:#a4b5bc}#resultText{font-size:10px;line-height:1.6;margin:14px 0}#again{border-radius:18px 6px 18px 6px}#home{border:0;font-size:12px}
@@ -79,3 +79,7 @@ button{min-height:44px}header{top:max(18px,env(safe-area-inset-top));left:max(5%
 
 /* Let accuracy colors settle gently between taps and sheep entries. */
 #count{transition:color .45s ease}
+
+/* Keep the two counting controls readable against the dense moonlit flowers. */
+.tapzones b{background:#142e31d9;border-color:#b9d6c26b;box-shadow:0 5px 22px #071d2633,inset 0 1px #dcebd819}
+.tapzones span{background:#10242bd9;color:#d4e2d7;border-radius:8px;padding:4px 8px}

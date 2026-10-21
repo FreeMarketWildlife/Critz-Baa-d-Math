@@ -1,6 +1,5 @@
 // Height is measured in viewport heights. It deliberately has no upper limit.
 export const LIFT_DELAY = 15;
-export const LANDING_RAGE = .5;
 export const createLevitation = () => ({ calm: 0, height: 0, velocity: 0, falling: false, fallTime: 0, impact: 0 });
 
 export function stepLevitation(state, dt, buildingRage) {
@@ -23,7 +22,7 @@ export function stepLevitation(state, dt, buildingRage) {
       state.height = state.velocity = state.calm = state.fallTime = 0;
       state.falling = false;
       state.impact = 1;
-      return LANDING_RAGE;
+      return 0;
     }
   } else if (!buildingRage) {
     const before = state.calm;

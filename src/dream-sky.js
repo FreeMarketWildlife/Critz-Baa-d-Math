@@ -26,7 +26,26 @@ function planet(ctx, x, y, r, color, rings = false) {
   light.addColorStop(0, color); light.addColorStop(.6, '#737079'); light.addColorStop(1, '#101c30');
   oval(ctx, 0, 0, r, r, light);
   ctx.save(); ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.clip();
-  for (let i = -12; i <= 12; i++) oval(ctx, r * .12, i * r * .087, r * 1.05, r * (.015 + seed(i) * .017), i % 3 ? '#f0dbad12' : '#3c466425');
+  // Irregular cloud belts curl around the limb, with fine bright seams.
+  for (let i = -35; i <= 35; i++) {
+    const latitude = i * r * .03;
+    ctx.beginPath();
+    for (let j = 0; j <= 60; j++) {
+      const xx = -r + j / 60 * r * 2;
+      const curl = Math.sin(xx / r * 8 + i * .6) * r * .008 + Math.sin(xx / r * 19 - i * .2) * r * .003;
+      const yy = latitude + Math.cos(xx / r * 1.5) * r * .035 + curl;
+      if (!j) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+    }
+    ctx.strokeStyle = i % 4 === 0 ? '#e9cc9650' : i % 3 ? '#d5aa8032' : '#55516645';
+    ctx.lineWidth = r * (.009 + seed(i + 90) * .015); ctx.stroke();
+  }
+  // A slowly wound storm in the southern cloud belts.
+  for (let i = 15; i > 0; i--) oval(ctx, r * .24, r * .42, r * .10 * i / 15, r * .034 * i / 15,
+    i % 2 ? '#c7986735' : '#edd1a325', -.08);
+  const dusk = ctx.createRadialGradient(-r * .3, -r * .4, r * .15, -r * .3, -r * .4, r * 1.65);
+  dusk.addColorStop(0, '#07152a00'); dusk.addColorStop(.45, '#07152a00');
+  dusk.addColorStop(.8, '#07152a55'); dusk.addColorStop(1, '#07152acc');
+  ctx.fillStyle = dusk; ctx.fillRect(-r, -r, r * 2, r * 2);
   ctx.restore();
   if (rings) {
     for (let i = 0; i < 24; i++) {
@@ -63,11 +82,15 @@ export function drawDreamSky(ctx, w, h, height, time, stars) {
   ctx.globalAlpha = 1;
   // Skybox bodies barely move with altitude: Kronos is enormous and far away.
   const skyShift = Math.log1p(height) * h * .012;
-  ctx.save(); ctx.globalAlpha = .14 + space * .48;
-  planet(ctx, w * .04, -h * .08 + skyShift, Math.max(w * .29, h * .32), '#d9b889', true);
-  ctx.globalAlpha = .12 + space * .35;
-  planet(ctx, w * .97, h * .16 + skyShift * .7, Math.min(w * .14, h * .15), '#799ce6', true);
+  ctx.save(); ctx.globalAlpha = .30 + space * .35;
+  planet(ctx, w * .12, -h * .16 + skyShift, Math.max(w * .58, h * .68), '#d9b889', true);
   ctx.restore();
+  // From Libriam, distant Zuhal reads as a bright blue-white point, not a nearby disc.
+  const zx = w * .87, zy = h * .22 + skyShift * .2;
+  halo(ctx, zx, zy, 19, '#aacfff22');
+  oval(ctx, zx, zy, 1.8, 1.8, '#d9eaff');
+  ctx.save(); ctx.strokeStyle = '#bbd8ff55'; ctx.lineWidth = .7;
+  ctx.beginPath(); ctx.moveTo(zx - 5, zy); ctx.lineTo(zx + 5, zy); ctx.moveTo(zx, zy - 6); ctx.lineTo(zx, zy + 6); ctx.stroke(); ctx.restore();
   // A fully illuminated Moon, Libriam's own sub-satellite, behind the dreamer.
   const mx = w * .57, my = h * .36 + skyShift * .35, mr = Math.min(w * .125, h * .115);
   fullMoon(ctx, mx, my, mr);
@@ -94,12 +117,21 @@ export function drawDreamSky(ctx, w, h, height, time, stars) {
   }
 }
 
-const flowerColors = ['#c2cfe0', '#a99bd7', '#d898bc', '#dfb96d', '#8db7db', '#e1a28d'];
+const flowerColors = ['#e6e7ef', '#9575e0', '#b58be4', '#efce69', '#5798e6', '#7682ee'];
+const flowerShades = [
+  ['#dedfeb', '#f3f0e2', '#c9d8f2'],
+  ['#8e68cf', '#b19be8', '#745bc4'],
+  ['#c399eb', '#9773d2', '#b78ecf'],
+  ['#f2d472', '#e9be54', '#f4e3a1'],
+  ['#5598e2', '#7cb8ef', '#4579c9'],
+  ['#7b8dea', '#626ed3', '#a2a4f0'],
+];
 function flower(ctx, x, y, size, species, color, lean = 0) {
   const top = y - size * (species === 1 ? 6 : 3.6);
   ctx.strokeStyle = '#527b6a'; ctx.lineWidth = Math.max(.5, size * .22);
   ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x - size, top + size * 2, x + lean, top); ctx.stroke();
-  oval(ctx, x - size * .7, y - size * 1.3, size * 1.2, size * .36, '#62846a', -.5);
+  oval(ctx, x - size * .7, y - size * 1.3, size * 1.2, size * .36, '#4f8067', -.5);
+  if (size > 1.1) oval(ctx, x + size * .7, y - size * 2, size * .95, size * .28, '#6e9774', .5);
   if (species === 1) { // Lupines: rising tiers of lavender bells.
     for (let j = 0; j < 5; j++) {
       const s = size * (1 - j * .12), yy = top + size * 2.5 - j * size * .7;
@@ -113,15 +145,16 @@ function flower(ctx, x, y, size, species, color, lean = 0) {
     for (let j = 0; j < petals; j++) {
       const a = j / petals * Math.PI * 2;
       oval(ctx, x + lean + Math.cos(a) * size * .85, top + Math.sin(a) * size * .85, size * .86, size * .47, color, a);
+      if (size > 1.4) oval(ctx, x + lean + Math.cos(a) * size * .96, top + Math.sin(a) * size * .96 - size * .12, size * .48, size * .18, '#f0efff35', a);
     }
     oval(ctx, x + lean, top, size * .42, size * .42, species === 3 ? '#836b44' : '#dac788');
   }
 }
 const fields = [
-  { horizon: .72, depth: .16, color: '#233d48', light: '#385660', count: 160, size: .55 },
-  { horizon: .79, depth: .34, color: '#1b3b3d', light: '#345c58', count: 260, size: .8 },
-  { horizon: .87, depth: .66, color: '#15332f', light: '#315749', count: 260, size: 1.3 },
-  { horizon: .95, depth: 1, color: '#102b28', light: '#244e3e', count: 180, size: 2.8 },
+  { horizon: .72, depth: .16, color: '#233d48', light: '#385660', count: 1900, size: .70 },
+  { horizon: .79, depth: .34, color: '#1b3b3d', light: '#345c58', count: 2900, size: 1.10 },
+  { horizon: .87, depth: .66, color: '#15332f', light: '#315749', count: 3600, size: 1.65 },
+  { horizon: .95, depth: 1, color: '#102b28', light: '#244e3e', count: 2800, size: 3.0 },
 ];
 let fieldCache;
 function hillY(x, w, h, layer) {
@@ -136,16 +169,27 @@ function buildFields(w, h) {
     c.fillStyle = earth; c.beginPath(); c.moveTo(-80, h + 70);
     for (let x = -80; x <= w + 80; x += 5) c.lineTo(x, hillY(x, w, h, layer));
     c.lineTo(w + 80, h + 70); c.closePath(); c.fill();
-    const count = Math.round(field.count * Math.max(.65, Math.min(1.7, w / 850)));
-    for (let i = 0; i < count; i++) {
-      const key = i + layer * 1100, x = seed(key) * (w + 160) - 80;
+    const count = Math.round(field.count * Math.max(.60, Math.min(2.1, w / 850)));
+    // Fill a deep swathe of every hill, so no bare strips appear between layers.
+    // Depth-sorting puts close petals in front; broad seed patches weave colors together.
+    const blooms = Array.from({ length: count }, (_, i) => {
+      const key = i + layer * 13001, x = seed(key) * (w + 160) - 80;
       const depth = seed(key + 291), base = hillY(x, w, h, layer);
-      const y = base + 4 + depth * Math.max(8, h * .07);
-      const scale = field.size * (.6 + depth * .8) * Math.min(1.25, Math.max(.8, w / 850));
-      c.globalAlpha = .5 + depth * .35;
-      const species = Math.floor(seed(key + 890) * 6);
-      flower(c, x, y, scale, species, flowerColors[species], (seed(key + 76) - .5) * scale);
-      if (i % 2 === 0) {
+      const y = base + 1 + depth * Math.max(30, h * (layer === 3 ? .18 : .17));
+      const scale = field.size * (.65 + depth * 1.5) * Math.min(1.25, Math.max(.85, w / 850));
+      // Mixed wildflowers within overlapping drifts of blue, purple, white, and gold.
+      const patch = Math.sin(x / w * 12 + layer * 2.4) + Math.sin(depth * 7 + layer);
+      const pick = seed(key + 890);
+      const species = pick < .5 ? (patch > .7 ? 4 : patch < -.6 ? 1 : layer % 2 ? 3 : 0) : Math.floor(seed(key + 778) * 6);
+      return { x, y, scale, species, key, depth };
+    }).sort((a, b) => a.y - b.y);
+    for (const bloom of blooms) {
+      const { x, y, scale, species, key, depth } = bloom;
+      if (y - scale * 7 > h + 70) continue;
+      c.globalAlpha = .64 + depth * .31;
+      const color = flowerShades[species][Math.floor(seed(key + 582) * 3)];
+      flower(c, x, y, scale, species, color, (seed(key + 76) - .5) * scale);
+      if (key % 4 === 0) {
         c.strokeStyle = '#73957836'; c.lineWidth = .7; c.beginPath(); c.moveTo(x + 5, y + 3); c.quadraticCurveTo(x + 2, y - scale * 3, x + 7, y - scale * 5); c.stroke();
       }
     }

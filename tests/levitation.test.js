@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createLevitation, stepLevitation, cameraHeight, LANDING_RAGE } from '../src/levitation.js';
+import { createLevitation, stepLevitation, cameraHeight } from '../src/levitation.js';
 const advance = (s, seconds, rage = false) => {
   let penalty = 0;
   for (let i = 0; i < Math.round(seconds * 120); i++) penalty += stepLevitation(s, 1 / 120, rage);
@@ -17,7 +17,7 @@ test('sleep on the ground for fifteen continuous calm seconds, then climb withou
   advance(s, 300); assert.ok(s.height > orbit + 5);
   assert.ok(Math.abs(s.height - cameraHeight(s.height) - .32) < 1e-10);
 });
-test('a broken airborne streak falls under gravity and adds half rage exactly once on impact', () => {
+test('a broken airborne streak falls under gravity and lands without adding any rage', () => {
   const s = createLevitation(); advance(s, 80);
   const top = s.height;
   assert.equal(stepLevitation(s, 1 / 120, true), 0);
@@ -26,7 +26,7 @@ test('a broken airborne streak falls under gravity and adds half rage exactly on
   advance(s, .2); assert.equal(s.falling, true);
   let penalty = 0;
   while (s.falling) penalty += stepLevitation(s, 1 / 120, true);
-  assert.equal(penalty, LANDING_RAGE); assert.equal(s.height, 0);
+  assert.equal(penalty, 0); assert.equal(s.height, 0);
   assert.equal(advance(s, 1, true), 0);
   advance(s, 14.5); assert.equal(s.height, 0);
   advance(s, 1); assert.ok(s.height > 0);

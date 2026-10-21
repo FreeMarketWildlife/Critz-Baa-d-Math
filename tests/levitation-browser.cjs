@@ -15,14 +15,14 @@ const assert = require('node:assert/strict');
         state:()=>({status,elapsed,rage,...levitation}),
         run:seconds=>{for(let i=0;i<seconds*120&&status==='playing';i++){tick(1/120);while(count!==target)tap(Math.sign(target-count));}update();draw(elapsed)},
         break:()=>{count=target+20;grace=-1;next=Infinity;orbs=[];tick(1/120);update();draw(elapsed)},
-        fall:()=>{let penaltyStart=rage;while(levitation.falling&&status==='playing')tick(1/120);update();draw(elapsed);return rage-penaltyStart},
+        fall:()=>{let penaltyStart=rage;count=target;while(levitation.falling&&status==='playing')tick(1/120);update();draw(elapsed);return rage-penaltyStart},
         pause:()=>{pause();frame(previous+100)},resume:()=>$('resume').click(),
         lose:()=>{rage=1;finish();frame(previous+100)},
         end:()=>{for(let i=0;i<25;i++)frame(previous+100)}
       };` });
     });
     await page.goto('http://localhost:4187/'); await page.reload(); await page.waitForFunction(() => window.review);
-    assert.equal(await page.locator('.progress,#progress').count(), 0);
+    assert.equal(await page.locator('.progress,#progress,#perfect').count(), 0);
     await page.evaluate(() => review.begin());
     await page.evaluate(() => review.paint());
     await page.screenshot({ path: `artifacts/wolf-grass-${width}.png` });
@@ -44,7 +44,7 @@ const assert = require('node:assert/strict');
     await page.evaluate(() => review.break());
     assert.equal((await page.evaluate(() => review.state())).falling, true);
     const penalty = await page.evaluate(() => review.fall());
-    assert.ok(Math.abs(penalty - .5) < .01, String(penalty));
+    assert.equal(penalty, 0);
     const landed = await page.evaluate(() => review.state()); assert.equal(landed.height, 0); assert.equal(landed.status, 'playing');
     await page.screenshot({ path: `artifacts/wolf-landing-${width}.png` });
     await page.evaluate(() => review.lose()); await page.evaluate(() => review.end());
@@ -52,7 +52,7 @@ const assert = require('node:assert/strict');
     await page.locator('#again').click(); const fresh = await page.evaluate(() => review.state());
     assert.equal(fresh.height, 0); assert.equal(fresh.calm, 0); assert.equal(fresh.rage, 0); assert.equal(fresh.status, 'playing');
     assert.deepEqual(errors, []);
-    console.log(JSON.stringify({ width, height, orbit: orbit.height, landingRage: landed.rage, restart: fresh.status, errors }));
+    console.log(JSON.stringify({ width, height, orbit: orbit.height, rageAfterLanding: landed.rage, restart: fresh.status, errors }));
     await page.close();
   }
   await browser.close();

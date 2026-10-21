@@ -86,13 +86,13 @@ test('seeded long runs retain isolated introductions, arithmetic ordering, and a
   }
 });
 
-test('hold repeats at .1s, accelerates at .5/1/3s, and does not depend on frame rate', () => {
+test('hold waits .5s, accelerates at 1/3s, and does not depend on frame rate', () => {
   const totals=[];
   for(const step of [1/120,1/60,1/20]) {
     const hold=newHold();let taps=0;
-    stepHold(hold,.099,()=>taps++);assert.equal(taps,0);
+    stepHold(hold,.499,()=>taps++);assert.equal(taps,0);
     stepHold(hold,.001,()=>taps++);assert.equal(taps,1);
-    for(let t=.1;t<4-1e-8;t+=step)stepHold(hold,step,()=>taps++);
+    for(let t=.5;t<4-1e-8;t+=step)stepHold(hold,step,()=>taps++);
     totals.push(taps);
   }
   assert.ok(Math.max(...totals)-Math.min(...totals)<=1);

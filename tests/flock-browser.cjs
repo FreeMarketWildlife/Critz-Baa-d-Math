@@ -19,15 +19,17 @@ const path=require('path');const fs=require('fs');
   if(mobile){
    const cdp=await context.newCDPSession(page);const box=await page.locator('#plus').boundingBox();const x=box.x+box.width*.5,y=box.y+box.height*.7;
    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
-   await page.evaluate(()=>qa.hold(4));
+   await page.evaluate(()=>qa.hold(.499));if(await page.evaluate(()=>qa.state().count)!==1)throw Error('Touch repeated before .5s');
+   await page.evaluate(()=>qa.hold(.001));if(await page.evaluate(()=>qa.state().count)!==2)throw Error('Touch did not repeat at .5s');
+   await page.evaluate(()=>qa.hold(3.5));
    await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   }else{
-   const box=await page.locator('#plus').boundingBox();await page.mouse.move(box.x+box.width*.5,box.y+box.height*.7);await page.mouse.down();await page.evaluate(()=>qa.hold(4));await page.mouse.up();
+   const box=await page.locator('#plus').boundingBox();await page.mouse.move(box.x+box.width*.5,box.y+box.height*.7);await page.mouse.down();await page.evaluate(()=>qa.hold(.499));if(await page.evaluate(()=>qa.state().count)!==1)throw Error('Mouse repeated before .5s');await page.evaluate(()=>qa.hold(.001));if(await page.evaluate(()=>qa.state().count)!==2)throw Error('Mouse did not repeat at .5s');await page.evaluate(()=>qa.hold(3.5));await page.mouse.up();
   }
   const held=await page.evaluate(()=>qa.state().count);if(held<130)throw Error('Hold failed '+held);
   await page.evaluate(()=>qa.hold(.5));if(await page.evaluate(()=>qa.state().count)!==held)throw Error('Release stuck');
   await page.evaluate(()=>qa.reset());await page.keyboard.down('ArrowLeft');await page.evaluate(()=>qa.hold(.5));await page.keyboard.up('ArrowLeft');if(await page.evaluate(()=>qa.state().count)!==0)throw Error('Ground negative');
-  await page.keyboard.down('ArrowRight');await page.evaluate(()=>qa.hold(1.5));await page.keyboard.up('ArrowRight');const keyboard=await page.evaluate(()=>qa.state().count);if(keyboard<20)throw Error('Keyboard hold failed');
+  await page.keyboard.down('ArrowRight');await page.evaluate(()=>qa.hold(.499));if(await page.evaluate(()=>qa.state().count)!==1)throw Error('Keyboard repeated before .5s');await page.evaluate(()=>qa.hold(1.001));await page.keyboard.up('ArrowRight');const keyboard=await page.evaluate(()=>qa.state().count);if(keyboard<20)throw Error('Keyboard hold failed');
   await page.evaluate(()=>qa.prepareSpace());await page.keyboard.down('ArrowLeft');await page.evaluate(()=>qa.hold(2));await page.keyboard.up('ArrowLeft');if(await page.evaluate(()=>qa.state().count)>=0)throw Error('Space negative failed');
   await page.evaluate(()=>qa.reset());const debuts=await page.evaluate(()=>qa.run(1500));
   const state=await page.evaluate(()=>qa.state());if(!state.space||state.types.length<15)throw Error('Long run failed '+JSON.stringify(state));

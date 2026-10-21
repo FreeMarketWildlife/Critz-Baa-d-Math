@@ -47,12 +47,19 @@ export const isPerfectCrossing = (flight, count) => Boolean(flight.perfectLocked
 export const calmForPerfect = rage => Math.max(0, rage - .22);
 export const perfectPercent = (hits, total) => total > 0 ? Math.floor(hits / total * 100) : 0;
 
-// Moving toward the next total is legitimate anticipation, not a counting error.
-// Values outside the current-to-next interval still build rage as usual.
+// Damage eligibility is separate from the midpoint-committed color and perfect score.
+// Each visible, still-in-play flight owns only its before→after interval. Keep that
+// interval through its departure so crossing cannot suddenly invalidate a held count.
+// The caller removes departed flights; invisible/unspawned totals grant no allowance.
 export function countingError(count, target, incoming) {
-  if (!incoming || incoming.crossed) return Math.abs(count - target);
-  const low = Math.min(target, incoming.result), high = Math.max(target, incoming.result);
-  return Math.max(low - count, count - high, 0);
+  const flights = Array.isArray(incoming) ? incoming : incoming && !incoming.crossed ? [{ ...incoming, entered: incoming.entered !== false, before: target }] : [];
+  let error = Math.abs(count - target);
+  for (const flight of flights) {
+    if (!flight.entered || !Number.isFinite(flight.before) || !Number.isFinite(flight.result)) continue;
+    const low = Math.min(flight.before, flight.result), high = Math.max(flight.before, flight.result);
+    error = Math.min(error, Math.max(low - count, count - high, 0));
+  }
+  return error;
 }
 
 // Credit the latest visible incoming sheep and the most recent crossed sheep. Matching

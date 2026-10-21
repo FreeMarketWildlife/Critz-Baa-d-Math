@@ -3,7 +3,7 @@ const sheep = (id, name, color, mood, bonus, weight, math, extra = {}) =>
   ({ id, name, color, mood, bonus, weight, math, spin: .32, slow: 1, ...extra });
 export const FLOCK = [
   sheep('+1', 'Happy', '#f2efdf', 'happy', 50, 40, n => n + 1),
-  sheep('−1', 'Angry', '#f58992', 'angry', 75, 9, n => n - 1),
+  sheep('−1', 'Angry', '#f58992', 'angry', 75, 12, n => n - 1),
   sheep('×2', 'Goofy', '#eac47b', 'goofy', 150, 3, n => n * 2, { slow: 1.25, spin: .55 }),
   sheep('÷2', 'Crying', '#98c7f1', 'crying', 200, 1, n => n / 2, { fraction: [1, 2], slow: 1.5 }),
   sheep('+2', 'Eager', '#91dfb5', 'eager', 100, 18, n => n + 2),
@@ -38,7 +38,7 @@ export function eligible(type, value, { space = false, height = 0, elapsed = 0 }
 }
 
 export const createProgression = () => ({ seen: new Set(), pending: null, solo: false, nextWave: 0, index: 0 });
-// Two, then three complete wave cycles between debuts. Actual launch time, not
+// One complete wave cycle between debuts. Actual launch time, not
 // eligibility time, starts the next wait. Space/legend gates never skip the order.
 export function planEncounter(state, flights, value, context, random = Math.random) {
   if (state.solo) { if (flights.length) return null; state.solo = false; }
@@ -52,7 +52,7 @@ export function planEncounter(state, flights, value, context, random = Math.rand
     if (flights.length) return null;
     const id = state.pending;
     state.pending = null; state.solo = true; state.seen.add(id); state.index++;
-    state.nextWave = wave + (state.index % 2 ? 2 : 3);
+    state.nextWave = wave + 1;
     return id;
   }
   const options = FLOCK.filter(s => state.seen.has(s.id) && eligible(s, value, context));

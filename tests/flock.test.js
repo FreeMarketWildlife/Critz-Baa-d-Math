@@ -28,7 +28,7 @@ test('ground arithmetic never goes negative; fractions stay integral and negativ
   assert.equal(eligible(BY_ID['×0'],12,{elapsed:181,height:.01}),true);
 });
 
-test('curriculum never skips a type, waits 2–3 waves, and isolates the whole debut flight', () => {
+test('curriculum never skips a type, waits one wave, and isolates the whole debut flight', () => {
   const state=createProgression(), debuts=[];
   let elapsed=.45;
   for (const type of FLOCK) {
@@ -45,11 +45,11 @@ test('curriculum never skips a type, waits 2–3 waves, and isolates the whole d
     assert.equal(id,type.id);debuts.push({id,wave:Math.floor(elapsed/26)});
     assert.equal(planEncounter(state,[{}],12,context,()=>0),null);
     state.solo=false;
-    const early={...context,elapsed:elapsed+26};
+    const early={...context,elapsed:elapsed+25.5};
     const before=state.index;planEncounter(state,[],12,early,()=>.5);assert.equal(state.index,before);
     elapsed+=26;
   }
-  for(let i=1;i<debuts.length;i++)assert.ok([2,3].includes(debuts[i].wave-debuts[i-1].wave));
+  for(let i=1;i<debuts.length;i++)assert.equal(debuts[i].wave-debuts[i-1].wave,1);
   assert.deepEqual(debuts.map(s=>s.id),FLOCK.map(s=>s.id));
 });
 
@@ -64,7 +64,7 @@ test('seeded long runs retain isolated introductions, arithmetic ordering, and a
           const type=BY_ID[id],after=type.math(value),change=after-value;
           assert.ok(Number.isSafeInteger(after));if(t<=205)assert.ok(after>=0);
           if(state.index!==lastIndex) {
-            assert.equal(flights.length,0);assert.ok(Math.floor(t/26)-previousWave>=2||serial===0);
+            assert.equal(flights.length,0);assert.ok(Math.floor(t/26)-previousWave>=1||serial===0);
             previousWave=Math.floor(t/26);lastIndex=state.index;
           } else assert.equal(flights.some(f=>f.debut),false);
           const lead=encounterPreview(type,change);

@@ -28,6 +28,7 @@ let levitation = createLevitation();
 let n = 0, launched = 0, elapsed = 0, rage = 0;
 let perfectHits = 0, perfectScore = 0;
 let introductions = createProgression();
+let revealed = new Set(), cueUntil = 0;
 let next = .45, grace = 0, orbs = [], particles = [], rings = [], lastSide = 1;
 const sounds = new DreamSounds();
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -57,6 +58,8 @@ function begin(m) {
   count = target = plannedTarget = n = launched = elapsed = rage = 0;
   levitation = createLevitation();
   perfectHits = perfectScore = 0; introductions = createProgression();
+  revealed = new Set(); cueUntil = 0;
+  for (const id of ['double', 'halve', 'encounter']) $(id).getAnimations().forEach(animation => animation.cancel());
   next = .45; grace = 0; accumulator = 0; orbs = []; particles = []; rings = [];
   $('encounter').textContent = '';
   $('operation').replaceChildren();
@@ -178,7 +181,7 @@ function tick(dt) {
       lastSide = Math.random() < .78 ? -lastSide : lastSide;
       const type = BY_ID[op];
       const lead = encounterPreview(type, changed);
-      const flight = { ...launchFlight(lastSide, Math.random, lead), op, result: after, readyBeforeCenter: false, counted: false, entered: false };
+      const flight = { ...launchFlight(lastSide, Math.random, lead), op, before: plannedTarget, result: after, readyBeforeCenter: false, counted: false, entered: false };
       orbs.push(flight); plannedTarget = after; launched++;
       next = elapsed + launchGap(waveInterval(elapsed, 0) + Math.max(0, countTime(changed) - .4), lead);
       burst(flight.x, .98, colors[op], .65);
@@ -208,7 +211,18 @@ function tick(dt) {
         }
         $('operation').append(fraction);
       } else $('operation').textContent = displayOperation(orb.op);
-      $('encounter').textContent = introductions.solo ? `NEW: ${type.name} · ${displayOperation(type.id)} · Perfect +${type.bonus}` : '';
+      if (!revealed.has(orb.op)) {
+        revealed.add(orb.op);
+        if (orb.op !== '+1') {
+          cueUntil = elapsed + 1.4;
+          $('encounter').textContent = `NEW: ${type.name} · ${displayOperation(type.id)}`;
+          const button = orb.op === '×2' ? $('double') : orb.op === '÷2' ? $('halve') : null;
+          if (!reducedMotion.matches) for (const element of [$('encounter'), button].filter(Boolean)) {
+            element.getAnimations().forEach(animation => animation.cancel());
+            element.animate([{ transform: 'scale(.8)', opacity: .4 }, { transform: 'scale(1.12)', opacity: 1, offset: .45 }, { transform: 'scale(1)', opacity: 1 }], { duration: 650, easing: 'ease-out' });
+          }
+        }
+      }
       $('operation').style.color = colors[orb.op];
       observeAnticipation(orb, count);
     }
@@ -240,8 +254,8 @@ function tick(dt) {
   particles = particles.filter(p => p.age < p.life);
   for (const ring of rings) ring.age += dt;
   rings = rings.filter(ring => ring.age < .4);
-  if (!introductions.solo) $('encounter').textContent = '';
-  const error = countingError(count, target);
+  if (elapsed >= cueUntil) $('encounter').textContent = '';
+  const error = countingError(count, target, orbs);
   const buildingRage = stepRage(0, error, tolerance(n), dt, elapsed <= grace) > 0;
   stepLevitation(levitation, dt, buildingRage);
   // Keep counting during the fall; falling and landing never add rage.

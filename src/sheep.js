@@ -107,6 +107,13 @@ export function drawSheep(ctx, orb, x, y, r, color) {
   // The arithmetic stays upright on the sheep's side for quick reading.
   ctx.fillStyle = '#1b2838'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.font = `700 ${r * .75}px 'Space Grotesk',sans-serif`;
-  ctx.fillText(orb.op, x - direction * r * .2, y + r * .03);
+  if (orb.op === '÷2') {
+    const cx = x - direction * r * .2;
+    ctx.font = `700 ${r * .49}px 'Space Grotesk',sans-serif`;
+    ctx.fillText('1', cx, y - r * .25);
+    ctx.fillText('2', cx, y + r * .3);
+    ctx.strokeStyle = '#1b2838'; ctx.lineWidth = Math.max(1.5, r * .045);
+    ctx.beginPath(); ctx.moveTo(cx - r * .22, y + r * .025); ctx.lineTo(cx + r * .22, y + r * .025); ctx.stroke();
+  } else ctx.fillText(orb.op, x - direction * r * .2, y + r * .03);
   ctx.globalAlpha = 1;
 }

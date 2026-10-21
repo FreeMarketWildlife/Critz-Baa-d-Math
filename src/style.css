@@ -83,3 +83,11 @@ button{min-height:44px}header{top:max(18px,env(safe-area-inset-top));left:max(5%
 /* Keep the two counting controls readable against the dense moonlit flowers. */
 .tapzones b{background:#142e31d9;border-color:#b9d6c26b;box-shadow:0 5px 22px #071d2633,inset 0 1px #dcebd819}
 .tapzones span{background:#10242bd9;color:#d4e2d7;border-radius:8px;padding:4px 8px}
+/* Stacked arithmetic fractions share a clear horizontal bar in menu and HUD. */
+.fraction{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1;font-size:.75em;letter-spacing:0}
+.fraction>span{font-size:inherit!important;line-height:1.05;padding:0 .15em}
+.fraction>span:first-child{border-bottom:1.5px solid currentColor;padding-bottom:.08em}
+.fraction>span:last-child{padding-top:.08em}
+
+.legend i .fraction,.legend i .fraction>span{color:#1b2838;font-weight:700}
+.legend i .fraction{font-size:1em;gap:0}

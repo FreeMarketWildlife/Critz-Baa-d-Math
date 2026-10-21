@@ -82,3 +82,12 @@ Four cached layers of rolling hills move at different parallax speeds, so nearby
 There is no Ready indicator or central Perfect label. At a perfect center crossing, that sheep gets its own short-lived “Perfect!” speech bubble, with a little pop, tail and sparkles. It stays upright and travels beside the sheep, stays within the viewport, and fades after about a second. The existing perfect scoring and chime remain. `src/sheep-callout.js` owns this independent overlay without changing the shared sheep renderer.
 
 The cached meadows now plant thousands of depth-sorted flowers across every hill in continuous carpets, with broad patches of rich blues and purples, white daisies and yellow cups. Six flower shapes each have several color shades and close petals catch faint moonlight. Density scales with viewport width; only the cached layers move during ordinary frames. Counting controls have dark backing to stay legible against the flowers. Dropping from levitation has no landing penalty; ordinary counting-error rage rules still apply.
+
+
+## Gentle waves and solo introductions
+
+Spawn spacing follows an exponential pressure curve across active play time, with 18-second swells followed by 8-second recoveries. Two-second blends soften the transitions. Late swells reach the existing fast crossing limit; recoveries return to at least 1.65 seconds between launches. Large arithmetic changes retain the seven-taps-per-second budget and extended previews.
+
+Every operation's first appearance in each run waits for all airborne sheep to leave, then flies alone until fully offscreen. Restart resets those introductions; pause freezes their progress. Existing unlock times and integer arithmetic stay intact. The blue halving sheep shows a stacked 1 over 2 on its wool, in the menu, and in the operation feedback; its internal operation remains division by two.
+
+`tests/pacing.test.js` checks smooth wave boundaries, recovery spacing, reserved introductions, and a ten-minute mixed-flock simulation for isolated debuts and ordered whole-number arithmetic.

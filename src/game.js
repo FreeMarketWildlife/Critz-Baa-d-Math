@@ -1,10 +1,11 @@
+import { createIntroductions, nextEncounter, waveInterval } from './pacing.js';
 import { drawPerfectBubble } from './sheep-callout.js';
 import { createLevitation, stepLevitation, cameraHeight } from './levitation.js';
 import { drawDreamSky, drawGrass } from './dream-sky.js';
 import { slowArithmetic } from './music.js';
 import { FINALE_DURATION, runStats, attackBeat, drawHunter } from './finale.js';
 import { drawSheep } from './sheep.js';
-import { apply, tolerance, chooseOperation, interval, catchUpGrace, starsFor, stepRage, countColor, observeAnticipation, isPerfectCrossing, calmForPerfect, perfectPercent, countingError, creditCountedSheep } from './rules.js';
+import { apply, tolerance, chooseOperation, catchUpGrace, starsFor, stepRage, countColor, observeAnticipation, isPerfectCrossing, calmForPerfect, perfectPercent, countingError, creditCountedSheep } from './rules.js';
 import { DreamSounds } from './sound.js';
 import { launchFlight, advanceFlight, flightIsGone, FIXED_STEP, previewTime, launchGap, enterFlight, sheepRadius } from './physics.js';
 
@@ -20,6 +21,7 @@ let peak = 0, finaleTime = 0, victims = [], biteIndex = -1;
 let levitation = createLevitation();
 let n = 0, launched = 0, elapsed = 0, rage = 0;
 let perfectHits = 0;
+let introductions = createIntroductions();
 let next = .45, grace = 0, orbs = [], particles = [], rings = [], lastSide = 1;
 const sounds = new DreamSounds();
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -45,7 +47,7 @@ function begin(m) {
   peak = 0; finaleTime = 0; victims = []; biteIndex = -1;
   count = target = plannedTarget = n = launched = elapsed = rage = 0;
   levitation = createLevitation();
-  perfectHits = 0;
+  perfectHits = 0; introductions = createIntroductions();
   next = .45; grace = 0; accumulator = 0; orbs = []; particles = []; rings = [];
   lastOp = -10; countKick = crossingGlow = tapGlow = 0;
   $('modeLabel').textContent = 'TIME SURVIVED';
@@ -147,15 +149,17 @@ function tick(dt) {
   // Plan against every airborne operation, not just those that already crossed.
   // Extended previews delay subsequent launches so overlapping crossings stay ordered.
   if (elapsed >= next) {
-    const op = chooseOperation(elapsed, plannedTarget);
-    const after = apply(plannedTarget, op), changed = after - plannedTarget;
-    lastSide = Math.random() < .78 ? -lastSide : lastSide;
-    const lead = previewTime(changed);
-    const flight = { ...launchFlight(lastSide, Math.random, lead), op, result: after, readyBeforeCenter: false, counted: false, entered: false };
-    orbs.push(flight); plannedTarget = after; launched++;
-    next = elapsed + launchGap(interval(launched, changed), lead);
-    burst(flight.x, .98, colors[op], .65);
-    sounds.launch(lastSide);
+    const op = nextEncounter(introductions, orbs, () => chooseOperation(elapsed, plannedTarget));
+    if (op !== null) {
+      const after = apply(plannedTarget, op), changed = after - plannedTarget;
+      lastSide = Math.random() < .78 ? -lastSide : lastSide;
+      const lead = previewTime(changed);
+      const flight = { ...launchFlight(lastSide, Math.random, lead), op, result: after, readyBeforeCenter: false, counted: false, entered: false };
+      orbs.push(flight); plannedTarget = after; launched++;
+      next = elapsed + launchGap(waveInterval(elapsed, changed), lead);
+      burst(flight.x, .98, colors[op], .65);
+      sounds.launch(lastSide);
+    }
   }
   observeAnticipation(nextSheep(), count);
   creditCountedSheep(orbs, count);
@@ -169,7 +173,15 @@ function tick(dt) {
       const before = target; target = orb.result; peak = Math.max(peak, target);
       grace = elapsed + catchUpGrace(target - before);
       lastOp = elapsed;
-      $('operation').textContent = orb.op;
+      $('operation').replaceChildren();
+      if (orb.op === '÷2') {
+        const fraction = document.createElement('span');
+        fraction.className = 'fraction'; fraction.setAttribute('aria-label', 'one half');
+        for (const digit of ['1', '2']) {
+          const part = document.createElement('span'); part.textContent = digit; fraction.append(part);
+        }
+        $('operation').append(fraction);
+      } else $('operation').textContent = orb.op;
       $('operation').style.color = colors[orb.op];
       observeAnticipation(orb, count);
     }

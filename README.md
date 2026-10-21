@@ -28,11 +28,11 @@ An original lullaby, musical counting chimes, launch whistles, occasional cartoo
 
 ## Public release
 
-Play the immutable release at https://rawcdn.githack.com/FreeMarketWildlife/Critz-Baa-d-Math/41d1281410dda2478490228b939d60e70369d412/index.html. The CDN may show an external-content notice; choose “Open the page.” No login is required.
+Play directly at **https://critz-baad-math.pages.dev/**. This opens the game immediately with no GitHack warning page or login.
 
-GitHub Pages deploys successfully, but its default URL inherits the organization’s existing `freemarketwildlife.com` domain and currently redirects to a 404. The CDN link serves the same public game files without changing organization DNS or unrelated hosting.
-Every push to `main` runs the rule tests before deploying to GitHub Pages.
-Only `index.html` and `src/` are included in the public site artifact.
+Cloudflare Pages hosts only `index.html` and `src/`. To publish all current game changes, run `npm install` once, sign in with `npx wrangler login` if needed, then run `npm run deploy`. Deployment runs the tests and prepares `.public/` before updating the stable production address. Generated bundles, screenshots, and local runtime files remain excluded from Git and the public site.
+
+Every push to `main` runs the regression tests and packages the public game files in GitHub Actions. Cloudflare publication is handled by `npm run deploy`; the inherited GitHub Pages domain is no longer used as the game link.
 
 ## Personality and musical counting
 

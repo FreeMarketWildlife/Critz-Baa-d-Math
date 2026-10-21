@@ -1,13 +1,10 @@
-name: Test and deploy game
+name: Test and package game
 on:
   push:
     branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: pages
-  cancel-in-progress: false
 jobs:
   test-and-package:
     runs-on: ubuntu-latest
@@ -17,24 +14,9 @@ jobs:
         with:
           node-version: '22'
       - run: npm test
-      - name: Package public game files
-        run: |
-          mkdir public
-          cp index.html public/
-          cp -R src public/src
-      - uses: actions/upload-pages-artifact@v3
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
         with:
-          path: public
-  deploy:
-    needs: test-and-package
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          name: public-game
+          path: .public/
+          include-hidden-files: true

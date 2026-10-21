@@ -1,0 +1,10 @@
+import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+const root = new URL('../', import.meta.url);
+const output = new URL('.public/', root);
+await rm(output, { recursive: true, force: true });
+await mkdir(output, { recursive: true });
+await cp(new URL('index.html', root), new URL('index.html', output));
+await cp(new URL('src/', root), new URL('src/', output), { recursive: true });
+await writeFile(new URL('_headers', output), '/\n  Cache-Control: no-cache\n  X-Content-Type-Options: nosniff\n/src/*\n  Cache-Control: no-cache\n  X-Content-Type-Options: nosniff\n');
+console.log(`Game files prepared in ${fileURLToPath(output)}`);

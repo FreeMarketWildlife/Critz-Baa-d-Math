@@ -14,34 +14,27 @@ export function perfectBubble(orb, w, h, r) {
 }
 
 export function drawPerfectBubble(ctx, orb, w, h, r, reduced = false) {
-  const bubble = perfectBubble(orb, w, h, r);
-  if (!bubble) return;
-  const { x, y, width, height, age, opacity, face, side } = bubble;
-  const pop = reduced ? 1 : 1 - Math.exp(-age * 22) * Math.cos(age * 19) * .24;
+  const reward = perfectBubble(orb, w, h, r);
+  if (!reward) return;
+  const { x, y, width, height, age, opacity } = reward;
+  const pop = reduced ? 1 : 1 - Math.exp(-age * 16) * Math.cos(age * 22) * .38;
+  const rise = reduced ? 0 : Math.min(age, .8) * 16;
   ctx.save(); ctx.globalAlpha = opacity;
-  ctx.translate(x + width / 2, y + height / 2);
-  ctx.scale(pop, pop); ctx.rotate(reduced ? 0 : Math.sin(age * 5) * .035);
-  ctx.shadowColor = '#081a3255'; ctx.shadowBlur = 9; ctx.shadowOffsetY = 3;
-  ctx.fillStyle = '#f4eed6'; ctx.strokeStyle = '#d9c98a'; ctx.lineWidth = 1.2;
-  ctx.beginPath(); ctx.roundRect(-width / 2, -height / 2, width, height, [14, 14, 14, 5]); ctx.fill(); ctx.stroke();
-  ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-  const tail = Math.max(-width / 2 + 12, Math.min(width / 2 - 12, face - x - width / 2));
-  ctx.beginPath();
-  if (side) {
-    const edge = (orb.vx > 0 ? -1 : 1) * width / 2;
-    ctx.moveTo(edge, -5); ctx.lineTo(edge + Math.sign(edge) * 10, 7); ctx.lineTo(edge, 11);
-  } else {
-    ctx.moveTo(tail - 7, height / 2 - 1); ctx.lineTo(tail + 2, height / 2 + 9); ctx.lineTo(tail + 9, height / 2 - 1);
-  }
-  ctx.fill();
-  ctx.fillStyle = '#355b61'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = `700 ${w < 600 ? 15 : 17}px 'Space Grotesk',sans-serif`;
-  ctx.fillText('Perfect!', 0, 1);
-  // A little celebratory sparkle on either side of the speech bubble.
-  ctx.strokeStyle = '#efe2a2'; ctx.lineWidth = 1.4;
-  for (const side of [-1, 1]) {
-    const sx = side * (width / 2 + 7 + Math.min(age, .3) * 15), sy = -height * .28;
-    ctx.beginPath(); ctx.moveTo(sx - 3, sy); ctx.lineTo(sx + 3, sy); ctx.moveTo(sx, sy - 4); ctx.lineTo(sx, sy + 4); ctx.stroke();
+  ctx.translate(x + width / 2, y + height / 2 - rise); ctx.scale(pop, pop);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `700 ${w < 600 ? 21 : 25}px 'Space Grotesk',sans-serif`;
+  ctx.lineJoin = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = '#142331';
+  ctx.shadowColor = '#e9d58c88'; ctx.shadowBlur = 12;
+  ctx.strokeText('Perfect', 0, 0);
+  const gold = ctx.createLinearGradient(0, -14, 0, 14);
+  gold.addColorStop(0, '#fff9de'); gold.addColorStop(1, '#e4c576');
+  ctx.fillStyle = gold; ctx.fillText('Perfect', 0, 0); ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#f4df9a'; ctx.lineWidth = 1.5;
+  for (let i = 0; i < 6; i++) {
+    const angle = i / 6 * Math.PI * 2, distance = 10 + Math.min(age * 70, 32);
+    const sx = Math.cos(angle) * (width / 2 + distance * .4), sy = Math.sin(angle) * distance;
+    ctx.globalAlpha = opacity * Math.max(0, 1 - age / .65);
+    ctx.beginPath(); ctx.moveTo(sx - 2, sy); ctx.lineTo(sx + 2, sy); ctx.moveTo(sx, sy - 3); ctx.lineTo(sx, sy + 3); ctx.stroke();
   }
   ctx.restore();
 }

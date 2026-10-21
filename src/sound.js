@@ -20,7 +20,7 @@ export class DreamSounds {
     this.enabled = true;
     try { this.enabled = localStorage.getItem('baad-sound') !== 'off'; } catch {}
     this.context = null; this.music = null; this.ambience = null;
-    this.tapStep = 0;
+    this.tapStep = 0; this.perfectStep = 0;
     this.lastBaa = -1;
     this.lastWarning = -1;
   }
@@ -62,7 +62,7 @@ export class DreamSounds {
     osc.onended = () => { osc.disconnect(); gain.disconnect(); };
   }
   start() {
-    this.tapStep = 0; this.unlock();
+    this.tapStep = 0; this.perfectStep = 0; this.unlock();
     // A muted start still needs a score ready for the first unmute gesture.
     if (this.music) this.music.start();
     if (this.ambience) this.ambience.start();
@@ -86,7 +86,16 @@ export class DreamSounds {
     }
   }
   tap(direction) { this.playCountNote(direction, 'tap'); }
-  perfect() { this.playCountNote(1, 'perfect'); }
+  perfect() {
+    // A separate ascending C-major reward phrase: taps/subtractions cannot pull it down.
+    // Two octaves, then repeat the phrase softly instead of climbing out of hearing range.
+    const step = this.perfectStep++ % 14, degrees = [0, 2, 4, 5, 7, 9, 11];
+    const frequency = 523.25113 * 2 ** (Math.floor(step / 7) + degrees[step % 7] / 12);
+    this.note(frequency, .72, 0, 'sine', .14);
+    this.note(frequency / 2, .8, .008, 'sine', .055);
+    this.note(frequency * 2, .48, .055, 'triangle', .022);
+    this.note(frequency * 2, .34, .14, 'sine', .018);
+  }
   updateMusic(focused, height = 0) {
     if (!this.inDream) return;
     if (this.music) this.music.update(focused);

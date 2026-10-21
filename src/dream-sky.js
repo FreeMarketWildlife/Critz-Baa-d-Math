@@ -71,9 +71,9 @@ function fullMoon(ctx, x, y, r) {
 export function drawDreamSky(ctx, w, h, height, time, stars) {
   const space = smooth((height - .6) / 2.8);
   const bg = ctx.createLinearGradient(0, 0, 0, h);
-  bg.addColorStop(0, mix([9, 18, 37], [3, 7, 18], space));
-  bg.addColorStop(.6, mix([29, 49, 70], [10, 18, 34], space));
-  bg.addColorStop(1, mix([54, 77, 80], [18, 31, 46], space));
+  bg.addColorStop(0, mix([4, 9, 22], [3, 7, 18], space));
+  bg.addColorStop(.6, mix([10, 21, 38], [10, 18, 34], space));
+  bg.addColorStop(1, mix([18, 33, 43], [18, 31, 46], space));
   ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
   for (const s of stars) {
     ctx.globalAlpha = .18 + (.5 + .5 * Math.sin(time * .18 + s.phase)) * .4;
@@ -82,7 +82,7 @@ export function drawDreamSky(ctx, w, h, height, time, stars) {
   ctx.globalAlpha = 1;
   // Skybox bodies barely move with altitude: Kronos is enormous and far away.
   const skyShift = Math.log1p(height) * h * .012;
-  ctx.save(); ctx.globalAlpha = .30 + space * .35;
+  ctx.save(); ctx.globalAlpha = .13 + space * .32;
   planet(ctx, w * .12, -h * .16 + skyShift, Math.max(w * .58, h * .68), '#d9b889', true);
   ctx.restore();
   // From Libriam, distant Zuhal reads as a bright blue-white point, not a nearby disc.
@@ -92,7 +92,7 @@ export function drawDreamSky(ctx, w, h, height, time, stars) {
   ctx.save(); ctx.strokeStyle = '#bbd8ff55'; ctx.lineWidth = .7;
   ctx.beginPath(); ctx.moveTo(zx - 5, zy); ctx.lineTo(zx + 5, zy); ctx.moveTo(zx, zy - 6); ctx.lineTo(zx, zy + 6); ctx.stroke(); ctx.restore();
   // A fully illuminated Moon, Libriam's own sub-satellite, behind the dreamer.
-  const mx = w * .57, my = h * .36 + skyShift * .35, mr = Math.min(w * .125, h * .115);
+  const mx = w * .69, my = h * .36 + skyShift * .35, mr = Math.min(w * .125, h * .115);
   fullMoon(ctx, mx, my, mr);
   // Broad, restrained moonlight across the clearing, not a theatrical spotlight.
   ctx.save(); ctx.globalAlpha = 1 - space * .8;
@@ -221,6 +221,8 @@ export function drawGrass(ctx, w, h, camera, impact = 0, restingX = .5, time = 0
       ctx.restore();
     }
   }
+  // Moonlit night exposure across the landscape; retain the cool petal colors.
+  ctx.fillStyle = '#020b24'; ctx.globalAlpha = .47; ctx.fillRect(0, 0, w, h); ctx.globalAlpha = 1;
   // Just a handful of fireflies, softly breathing over the flower fields.
   const visibility = 1 - smooth(camera / 1.2);
   if (visibility > 0) {

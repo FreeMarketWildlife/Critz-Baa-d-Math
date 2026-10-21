@@ -16,20 +16,19 @@ test('original lullaby is a sorted sixteen-bar loop with bounded voices and C-ma
     if (i) assert.ok(event.time >= score[i - 1].time);
   }
 });
-test('perfects sparkle on the same note; ordinary crossings stay silent without advancing the melody', () => {
+test('perfect rewards ascend through C major across the octave independently of subtraction taps', () => {
   const sounds = new DreamSounds(), notes = [];
   sounds.note = (...args) => notes.push(args);
-  sounds.tap(1); assert.equal(sounds.tapStep, 1);
-  notes.length = 0; sounds.perfect();
-  const voices = cMajorVoices(1).filter(v => v.gain > .002);
-  assert.deepEqual(notes.slice(0, voices.length).map(n => n[0]), voices.map(v => v.frequency));
-  const frequency = cMajorVoices(1)[2].frequency;
-  assert.deepEqual(notes.slice(voices.length).map(n => n[0]), [frequency * 2, frequency * 4, frequency * 2]);
-  assert.ok(notes.some(n => n[1] >= .6)); assert.equal(sounds.tapStep, 2);
-  notes.length = 0; sounds.context = { currentTime: 10 }; sounds.baa = () => assert.fail('crossing must be silent');
-  sounds.cross('+1'); sounds.cross('×2', { perfect: true });
-  assert.equal(notes.length, 0); assert.equal(sounds.tapStep, 2);
-  sounds.tap(-1); assert.equal(sounds.tapStep, 1);
+  const pitches = [];
+  for (let i = 0; i < 14; i++) {
+    sounds.tap(-1); notes.length = 0; sounds.perfect(); pitches.push(notes[0][0]);
+    assert.ok(notes[0][1] >= .7);
+    assert.deepEqual(notes.slice(1).map(n => n[0]), [pitches[i]/2,pitches[i]*2,pitches[i]*2]);
+  }
+  for(let i=1;i<pitches.length;i++) assert.ok(pitches[i]>pitches[i-1]);
+  assert.ok(Math.abs(pitches[7]/pitches[0]-2)<1e-8);
+  notes.length = 0; sounds.perfect(); assert.equal(notes[0][0], pitches[0]);
+  notes.length = 0; sounds.cross('+1'); assert.equal(notes.length,0);
 });
 test('room focus lasts through overlapping slow arithmetic and releases on crossing', () => {
   const times = [{ op: '×2', crossingTime: 2, crossed: false }, { op: '÷2', crossingTime: 1.4, crossed: false }];

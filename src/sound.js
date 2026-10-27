@@ -86,7 +86,7 @@ export class DreamSounds {
     }
   }
   tap(direction) { this.playCountNote(direction, 'tap'); }
-  perfect() {
+  perfect(effect = 'bloom') {
     // A separate ascending C-major reward phrase: taps/subtractions cannot pull it down.
     // Two octaves, then repeat the phrase softly instead of climbing out of hearing range.
     const step = this.perfectStep++ % 14, degrees = [0, 2, 4, 5, 7, 9, 11];
@@ -95,6 +95,10 @@ export class DreamSounds {
     this.note(frequency / 2, .8, .008, 'sine', .055);
     this.note(frequency * 2, .48, .055, 'triangle', .022);
     this.note(frequency * 2, .34, .14, 'sine', .018);
+    // A low, rounded bubble pop under the existing quiet ascending reward.
+    const pitch = {bloom:330,ripple:290,stardust:440,petal:360,halo:260}[effect] || 330;
+    this.note(pitch,.16,0,'sine',.12,90);
+    this.note(pitch*1.5,.1,.015,'sine',.025,180);
   }
   updateMusic(focused, height = 0, space = false) {
     if (!this.inDream) return;

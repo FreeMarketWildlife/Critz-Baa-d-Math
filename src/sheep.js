@@ -6,6 +6,7 @@ export function drawSheep(ctx, orb, x, y, r, color, reduced = false) {
   };
   const type = BY_ID[orb.op] ?? BY_ID['+1'];
   const mood = type.mood;
+  if (orb.skin === 'cloud') color = '#c4eaff';
   const happy = Boolean(orb.counted);
   ctx.globalAlpha = happy ? 1 : orb.crossed ? .88 : 1;
   const direction = orb.vx < 0 ? -1 : 1;
@@ -121,6 +122,16 @@ export function drawSheep(ctx, orb, x, y, r, color, reduced = false) {
       ctx.shadowBlur=0;ctx.beginPath();ctx.moveTo(.74*r,.29*r);ctx.quadraticCurveTo(.87*r,.39*r,1.02*r,.24*r);ctx.stroke();
     }
     if (mood === 'furious') {ctx.strokeStyle='#fff1dc';ctx.lineWidth=.09*r;ctx.beginPath();ctx.moveTo(.73*r,.31*r);ctx.lineTo(1.02*r,.31*r);ctx.stroke();}
+  }
+  if (orb.skin === 'ram' || orb.skin === 'goat') {
+    ctx.strokeStyle = orb.skin === 'ram' ? '#c4a276' : '#aab7aa';ctx.lineWidth=r*.13;ctx.lineCap='round';
+    for(const ex of [.52,1.16]) {
+      ctx.beginPath();
+      if(orb.skin==='ram')ctx.arc(ex*r,-r*.45,r*.25,Math.PI*.4,Math.PI*2.3);
+      else {ctx.moveTo(ex*r,-r*.43);ctx.quadraticCurveTo((ex-.2)*r,-r*.9,(ex-.1)*r,-r*1.05);}
+      ctx.stroke();
+    }
+    if(orb.skin==='goat'){ctx.fillStyle='#d6d7bf';ctx.beginPath();ctx.moveTo(.7*r,.4*r);ctx.lineTo(.85*r,.77*r);ctx.lineTo(1*r,.4*r);ctx.fill();}
   }
   // A wool forelock sits between the ears.
   for (const [fx, fy] of [[.61, -.49], [.85, -.55], [1.06, -.47]]) ellipse(fx * r, fy * r, r * .18, r * .16, color);

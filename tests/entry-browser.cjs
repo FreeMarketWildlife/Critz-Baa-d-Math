@@ -18,7 +18,6 @@ for(let i=0;i<120;i++){r.step();const s=r.state();if(s.target===1){entry=s;break
 if(!entry)throw Error('no entry');r.tap(1);for(let i=0;i<110;i++)r.step();return {entry,after:r.state()};});
 assert.equal(result.entry.n,0);assert.equal(result.entry.orbs[0].crossed,false);assert.ok(result.entry.orbs[0].y>.85);assert.equal(result.after.target,1);assert.equal(result.after.n,1);assert.equal(result.after.perfectHits,1);assert.equal(typeof result.after.orbs[0].perfectAt,'number');
 assert.equal(await page.locator('#perfect').count(),0);
-const bubble=await page.evaluate(async()=>{const {perfectBubble}=await import('/src/sheep-callout.js');const orb=review.state().orbs[0];return perfectBubble(orb,innerWidth,innerHeight,Math.max(25,Math.min(innerWidth*.075,38)));});assert.ok(bubble);assert.ok(bubble.x>=0&&bubble.x+bubble.width<=width);
 await page.evaluate(()=>window.review.paint());await page.screenshot({path:`${process.cwd()}/artifacts/entry-timing-${width}.png`});
 const simulation=await page.evaluate(()=>{const r=window.review;r.begin();let tapAt=0;
 for(let i=0;i<120*180;i++){r.step();const s=r.state();if(s.elapsed>=tapAt&&s.count!==s.target){r.tap(Math.sign(s.target-s.count));tapAt=s.elapsed+1/7;}if(s.status!=='playing')return s;}

@@ -3,7 +3,9 @@ import { FLOCK, BY_ID, createProgression, planEncounter, displayOperation } from
 import { bindCounting, countTime, encounterPreview } from './controls.js';
 import { readCollection, recordSheep, renderCollection } from './collection.js';
 import { waveInterval } from './pacing.js';
-import { drawPerfectBubble } from './sheep-callout.js';
+import { drawCrit, drawTrail, EFFECT_COLORS } from './crit.js';
+import { readShop, saveShop, earnCrit, selectItem, CATALOG, CATEGORIES, guardianPalettes } from './shop.js';
+import { drawLocation } from './locations.js';
 import { createLevitation, stepLevitation, cameraHeight } from './levitation.js';
 import { drawDreamSky, drawGrass } from './dream-sky.js';
 import { slowArithmetic } from './music.js';
@@ -18,6 +20,8 @@ const canvas = $('night'), ctx = canvas.getContext('2d');
 const colors = Object.fromEntries(FLOCK.map(s => [s.id, s.color]));
 let storage; try { storage = localStorage; } catch {}
 const collection = readCollection(storage);
+const shop = readShop(storage);
+let shopCategory = 'effect', shopReturn = 'menu', readyGlow = 0, critPops = [], runCritz = 0;
 const stars = Array.from({ length: 130 }, () => ({
   x: Math.random(), y: Math.random() * .8, r: Math.random() * 1.4 + .3, phase: Math.random() * 6,
 }));
@@ -32,7 +36,7 @@ let revealed = new Set(), cueUntil = 0;
 let next = .45, grace = 0, orbs = [], particles = [], rings = [], lastSide = 1;
 const sounds = new DreamSounds();
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-let previous = performance.now(), lastOp = -10;
+let previous = performance.now();
 let accumulator = 0, visualTime = 0, countKick = 0, crossingGlow = 0, tapGlow = 0, tapSide = 1;
 
 function resize() {
@@ -43,16 +47,18 @@ function resize() {
 addEventListener('resize', resize); resize();
 
 function screens(id) {
-  for (const name of ['menu', 'play', 'result', 'paused', 'collection']) $(name).hidden = name !== id;
+  for (const name of ['menu', 'play', 'result', 'paused', 'collection', 'shop']) $(name).hidden = name !== id;
   $('footer').hidden = id === 'play';
   $('pause').disabled = id !== 'play';
-  $('collectionButton').disabled = id === 'finale' || id === 'collection';
+  $('shopButton').disabled = id === 'finale' || id === 'shop' || id === 'collection';
+  $('collectionButton').disabled = id === 'finale' || id === 'collection' || id === 'shop';
   $('danger').style.opacity = id === 'play' ? rage * .85 : 0;
 }
 
 function begin(m) {
   mode = 'endless'; m = mode; status = 'playing';
   controls.stop();
+  readyGlow = 0; critPops = []; runCritz = 0;
   $('double').hidden = $('halve').hidden = true;
   peak = 0; finaleTime = 0; victims = []; biteIndex = -1;
   count = target = plannedTarget = n = launched = elapsed = rage = 0;
@@ -62,8 +68,7 @@ function begin(m) {
   for (const id of ['double', 'halve', 'encounter']) $(id).getAnimations().forEach(animation => animation.cancel());
   next = .45; grace = 0; accumulator = 0; orbs = []; particles = []; rings = [];
   $('encounter').textContent = '';
-  $('operation').replaceChildren();
-  lastOp = -10; countKick = crossingGlow = tapGlow = 0;
+  countKick = crossingGlow = tapGlow = 0;
   $('modeLabel').textContent = 'TIME SURVIVED';
   sounds.start();
   screens('play'); update();
@@ -78,12 +83,7 @@ function update() {
   $('count').style.transform = `scale(${1 + countKick * .08})`;
   $('sheep').textContent = n;
   $('runScore').textContent = (n * 100 + perfectScore + Math.floor(elapsed) * 10).toLocaleString();
-  $('state').textContent = levitation.space ? 'DRIFTING IN SPACE' : levitation.falling ? 'FALLING' : levitation.height > 0 ? 'DREAMING HIGHER' : rage > .7 ? 'WAKING UP' : rage > .3 ? 'RESTLESS' : 'SOUND ASLEEP';
-  $('feedback').textContent = levitation.space && rage < .3 ? 'Beyond gravity. Negative counts unlocked.' : rage > .7 ? 'The dream is slipping…' : rage > .3 ? 'Find your rhythm.' : 'Keep the dream alive.';
   $('danger').style.opacity = rage * (.65 + .2 * Math.sin(visualTime * (4 + rage * 5)));
-  $('operation').style.opacity = Math.max(0, 1 - (elapsed - lastOp) / .65);
-  $('operation').style.transform = `translate(-50%, ${-(elapsed - lastOp) * 12}px)`;
-  $('pace').textContent = elapsed < 15 ? 'SETTLE IN' : elapsed < 30 ? 'DREAM DEEPER' : elapsed < 60 ? 'QUICKENING' : 'FEVER DREAM';
   document.documentElement.style.setProperty('--tap-left', tapSide < 0 ? tapGlow * .1 : 0);
   document.documentElement.style.setProperty('--tap-right', tapSide > 0 ? tapGlow * .1 : 0);
 }
@@ -100,6 +100,7 @@ function showResult() {
   $('stars').textContent = stats.score.toLocaleString();
   $('resultCount').textContent = count.toLocaleString();
   $('resultSheep').textContent = target.toLocaleString();
+  $('resultCritz').textContent = `${perfectHits} Crits · +${runCritz} Critz · Wallet ${shop.balance.toLocaleString()}`;
   $('again').focus({ preventScroll: true });
 }
 
@@ -146,21 +147,89 @@ addEventListener('keydown', e => {
   if (!['Escape', ' '].includes(e.key) || e.repeat) return;
   if (e.target.tagName === 'BUTTON' && e.key === ' ') return;
   e.preventDefault();
-  if (status === 'collection') $('closeCollection').click();
+  if (status === 'shop') $('closeShop').click();
+  else if (status === 'collection') $('closeCollection').click();
   else if (status === 'playing') pause(); else if (status === 'paused') $('resume').click();
 });
 let collectionReturn = 'menu';
 function openCollection() {
-  if (status === 'finale' || status === 'collection') return;
+  if (status === 'finale' || status === 'collection' || status === 'shop') return;
   collectionReturn = status;
   if (status === 'playing') { pause(); collectionReturn = 'paused'; }
   controls.stop(); status = 'collection'; renderCollection($('flockGrid'), collection);
   const entries = Object.values(collection);
-  $('collectionSummary').textContent = `${entries.filter(e => e.seen).length}/${FLOCK.length} seen · ${entries.filter(e => e.perfect).length}/${FLOCK.length} perfected`;
+  $('collectionSummary').textContent = `${entries.filter(e => e.seen).length}/${FLOCK.length} seen · ${entries.filter(e => e.perfect).length}/${FLOCK.length} Crit mastered`;
   screens('collection'); $('closeCollection').focus();
 }
 $('collectionButton').onclick = openCollection;
 $('closeCollection').onclick = () => { status = collectionReturn; screens(status === 'result' ? 'result' : status === 'paused' ? 'paused' : 'menu'); $('collectionButton').focus(); };
+function renderShop() {
+  $('wallet').textContent = shop.balance.toLocaleString();
+  $('shopHelp').textContent = `This run: ${runCritz} Critz · Every Crit! earns more`;
+  $('shopTabs').replaceChildren();
+  for (const [category, label] of Object.entries(CATEGORIES)) {
+    const button = document.createElement('button'); button.textContent = label;
+    button.setAttribute('aria-pressed', String(category === shopCategory));
+    button.onclick = () => { shopCategory = category; renderShop(); }; $('shopTabs').append(button);
+  }
+  $('shopGrid').replaceChildren();
+  for (const entry of CATALOG.filter(i => i.category === shopCategory)) {
+    const card = document.createElement('article'); card.className = 'shop-card';
+    const preview = document.createElement('canvas'); preview.width = 280; preview.height = 150; preview.dataset.item = entry.id;
+    preview.setAttribute('aria-label', `${entry.name} preview`); preview.setAttribute('role','img');
+    const name = document.createElement('h3'); name.textContent = entry.name;
+    const description = document.createElement('p'); description.textContent = entry.description;
+    const button = document.createElement('button');
+    const owned = shop.owned.includes(`${entry.category}:${entry.id}`), equipped = shop.equipped[entry.category] === entry.id;
+    button.textContent = equipped ? 'Equipped' : owned ? 'Equip' : `Buy · ${entry.price} Critz`;
+    button.disabled = equipped || !owned && shop.balance < entry.price;
+    card.classList.toggle('equipped', equipped);
+    button.onclick = () => {
+      const bought = !owned;
+      if (selectItem(shop,entry.category,entry.id,storage)) {
+        $('shopNotice').textContent = `${entry.name} ${bought ? 'purchased and equipped' : 'equipped'}.`;
+        if (!saveShop(shop,storage)) $('shopNotice').textContent += ' Storage unavailable; changes last for this session.';
+        renderShop();
+        $('shopGrid').children[CATALOG.filter(i=>i.category===shopCategory).indexOf(entry)].querySelector('button:last-child').focus();
+      }
+    };
+    if (entry.category === 'effect') {
+      const hear = document.createElement('button'); hear.textContent = 'Hear pop'; hear.className = 'hear-pop';
+      hear.onclick = () => { if (!sounds.enabled) { sounds.toggle(); soundLabel(); } sounds.unlock(); sounds.perfect(entry.id); }; card.append(preview,name,description,hear,button);
+    } else card.append(preview,name,description,button); $('shopGrid').append(card);
+  }
+  animateShop(performance.now()/1000);
+}
+function animateShop(time) {
+  const phase = reducedMotion.matches ? .9 : time % 3;
+  for (const c of $('shopGrid').querySelectorAll('canvas')) {
+    const p = c.getContext('2d'), id = c.dataset.item;
+    p.clearRect(0,0,280,150);p.fillStyle='#111f32';p.fillRect(0,0,280,150);
+    if (shopCategory === 'effect') {
+      p.fillStyle=EFFECT_COLORS[id];p.font="48px 'Space Grotesk',sans-serif";p.textAlign='center';p.fillText('22',140,92);
+      drawCrit(p,{x:140,y:75,width:90,height:70,effect:id,ready:phase<1.6?Math.min(1,phase*1.5):0,age:phase>=1.6?phase-1.6:-1,reduced:reducedMotion.matches});
+    } else if(shopCategory==='sheep'||shopCategory==='trail') {
+      const trail=Array.from({length:20},(_,i)=>({x:.05+i*.027,y:.6+Math.sin(i*.12+time)*.08}));
+      if(shopCategory==='trail')drawTrail(p,trail,id,280,150,28);
+      drawSheep(p,{op:'+1',vx:1,angle:0,age:reducedMotion.matches?0:time,skin:shopCategory==='sheep'?id:shop.equipped.sheep},180,78,28,'#f2efdf',reducedMotion.matches);
+    } else if(shopCategory==='wolf') drawHunter(p,140,76,.7,{skin:id});
+    else {
+      const look={...shop.equipped,[shopCategory]:id};
+      drawDreamSky(p,280,150,0,reducedMotion.matches?0:time,[],look);
+      if(shopCategory==='location') {
+        if(id==='meadow') {p.fillStyle='#506c62';p.beginPath();p.ellipse(140,160,190,45,0,0,Math.PI*2);p.fill();for(let i=0;i<55;i++){p.fillStyle=['#b2a1dd','#e9d89c','#a3c7ed'][i%3];p.fillRect(i*37%280,120+i*13%30,2,3);}}
+        else drawLocation(p,280,150,0,time,id,reducedMotion.matches);
+      }
+    }
+  }
+}
+$('shopButton').onclick = () => {
+  if (['finale','shop','collection'].includes(status)) return;
+  shopReturn = status;
+  if(status==='playing'){pause();shopReturn='paused';}
+  controls.stop();status='shop';screens('shop');$('shopNotice').textContent='';renderShop();$('closeShop').focus();
+};
+$('closeShop').onclick = () => {status=shopReturn;screens(status==='result'?'result':status==='paused'?'paused':'menu');$('shopButton').focus();};
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
 
 function burst(x, y, color, size = 1) {
@@ -200,17 +269,7 @@ function tick(dt) {
       if (orb.op === '×2') $('double').hidden = false;
       if (orb.op === '÷2') $('halve').hidden = false;
       recordSheep(collection, orb.op, false, storage);
-      lastOp = elapsed;
-      $('operation').replaceChildren();
       const type = BY_ID[orb.op];
-      if (type.fraction) {
-        const fraction = document.createElement('span');
-        fraction.className = 'fraction'; fraction.setAttribute('aria-label', `${type.fraction[0]} over ${type.fraction[1]}`);
-        for (const digit of type.fraction) {
-          const part = document.createElement('span'); part.textContent = String(digit).replace('-', '−'); fraction.append(part);
-        }
-        $('operation').append(fraction);
-      } else $('operation').textContent = displayOperation(orb.op);
       if (!revealed.has(orb.op)) {
         revealed.add(orb.op);
         if (orb.op !== '+1') {
@@ -223,7 +282,6 @@ function tick(dt) {
           }
         }
       }
-      $('operation').style.color = colors[orb.op];
       observeAnticipation(orb, count);
     }
     if (crossedNow && !orb.crossed) {
@@ -236,7 +294,9 @@ function tick(dt) {
       if (perfect) {
         perfectHits++; orb.perfectAt = orb.age; orb.bonus = BY_ID[orb.op].bonus; perfectScore += orb.bonus;
         recordSheep(collection, orb.op, true, storage);
-        rage = calmForPerfect(rage); sounds.perfect();
+        rage = calmForPerfect(rage); sounds.perfect(shop.equipped.effect);
+        runCritz += earnCrit(shop, orb.bonus, storage);
+        critPops.push({ age: 0, effect: shop.equipped.effect });
       }
       observeAnticipation(nextSheep(), count);
       n++; crossingGlow = 1;
@@ -248,6 +308,11 @@ function tick(dt) {
       if (orb.trail.length > 9) orb.trail.shift();
     }
   }
+  // Fade in only while a visible incoming sheep has an eligible held count.
+  const ready = orbs.some(o => o.entered && !o.crossed && (o.perfectLocked || o.readyBeforeCenter && count === o.result));
+  readyGlow += ((ready ? 1 : 0) - readyGlow) * (1 - Math.exp(-dt * (ready ? 7 : 12)));
+  for (const pop of critPops) pop.age += dt;
+  critPops = critPops.filter(pop => pop.age < .85);
   creditCountedSheep(orbs, count);
   orbs = orbs.filter(orb => !flightIsGone(orb));
   for (const p of particles) { p.age += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += .12 * dt; }
@@ -267,10 +332,10 @@ function tick(dt) {
 }
 
 function ellipse(x, y, rx, ry, fill, rotation = 0) {
-  ctx.fillStyle = fill; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rotation, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = guardianPalettes[shop.equipped.wolf]?.[fill] || fill; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rotation, 0, Math.PI * 2); ctx.fill();
 }
 function path(points, fill) {
-  ctx.fillStyle = fill; ctx.beginPath(); ctx.moveTo(...points[0]);
+  ctx.fillStyle = guardianPalettes[shop.equipped.wolf]?.[fill] || fill; ctx.beginPath(); ctx.moveTo(...points[0]);
   for (const p of points.slice(1)) ctx.lineTo(...p);
   ctx.closePath(); ctx.fill();
 }
@@ -288,6 +353,7 @@ function drawWolf(time) {
   ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
   if (!reducedMotion.matches && afloat) ctx.rotate(levitation.falling ? Math.sin(levitation.fallTime * 2.2) * .10 * Math.min(1, levitation.fallTime) : Math.sin(time * .42) * .018 * afloat);
   if (!playing || levitation.height < .15) ellipse(0, 18, 115, 16, '#050d1770');
+  if (shop.equipped.wolf === 'lion') ellipse(-51,-28,52,48,'#926035');
   // Curled body, lighter ruff, and a broad tail wrapped around the paws.
   ellipse(13, -15, 83, 48 + breathe * 1.7, '#3a4e62', -.08);
   ellipse(27, -24, 59, 33 + breathe, '#465d70', -.12);
@@ -295,7 +361,7 @@ function drawWolf(time) {
   ctx.shadowColor = '#c4e4f04a'; ctx.shadowBlur = 6;
   ctx.beginPath(); ctx.ellipse(13, -16, 81, 46 + breathe * 1.7, -.08, 3.4, 5.8); ctx.stroke();
   ctx.shadowBlur = 0;
-  ctx.fillStyle = '#283c50'; ctx.beginPath(); ctx.moveTo(76, -22);
+  ctx.fillStyle = guardianPalettes[shop.equipped.wolf]?.['#283c50'] || '#283c50'; ctx.beginPath(); ctx.moveTo(76, -22);
   ctx.bezierCurveTo(145, 0, 105, 59, 23, 37); ctx.bezierCurveTo(-15, 27, -22, 14, -13, 8);
   ctx.bezierCurveTo(25, 26, 86, 20, 76, -22); ctx.fill();
   ctx.fillStyle = '#9aacae'; ctx.beginPath(); ctx.moveTo(-13, 8);
@@ -305,11 +371,13 @@ function drawWolf(time) {
   // Angular ears make the sleeping silhouette distinctly lupine.
   ctx.save(); ctx.translate(-50, -25 - breathe * .9);
   const twitch = restless * Math.sin(time * 8) * 3;
-  path([[-27, -5], [-30 - twitch, -61], [3, -29], [26, -50 + twitch], [28, -3]], '#526b7d');
+  const roundEars = shop.equipped.wolf === 'lion' || shop.equipped.wolf === 'hyena';
+  if (roundEars) { ellipse(-25,-27,13,15,'#607b8a');ellipse(24,-24,12,14,'#607b8a'); }
+  else path([[-27, -5], [-30 - twitch, -61], [3, -29], [26, -50 + twitch], [28, -3]], '#526b7d');
   ctx.strokeStyle = '#c6e0eb6a'; ctx.lineWidth = 1.4;
-  ctx.beginPath(); ctx.moveTo(-27, -5); ctx.lineTo(-30 - twitch, -61); ctx.lineTo(3, -29); ctx.stroke();
-  path([[-23, -41], [-20, -15], [-3, -26]], '#9e9da0');
-  path([[12, -26], [23, -38], [23, -12]], '#90959b');
+  if (!roundEars) { ctx.beginPath(); ctx.moveTo(-27, -5); ctx.lineTo(-30 - twitch, -61); ctx.lineTo(3, -29); ctx.stroke(); }
+  if (!roundEars) path([[-23, -41], [-20, -15], [-3, -26]], '#9e9da0');
+  if (!roundEars) path([[12, -26], [23, -38], [23, -12]], '#90959b');
   ellipse(-1, -3, 40, 32, '#607b8a', -.18);
   path([[-35, -8], [-47, 5], [-41, 7], [-49, 16], [-30, 18], [-22, 30], [4, 17]], '#7f99a2');
   ellipse(-19, 16, 31, 16, '#b7c8c5', -.12);
@@ -322,6 +390,10 @@ function drawWolf(time) {
   }
   ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(-38, 23); ctx.quadraticCurveTo(-25, 27, -20, 23); ctx.stroke();
   ctx.restore();
+  if (shop.equipped.wolf === 'hyena') {
+    for(let i=0;i<14;i++)ellipse(-18+(i*29%95),-40+(i*17%50),3.5,2.5,'#514534');
+
+  }
   // Quiet drifting Zs, which disappear as the wolf wakes.
   if (restless < .65) {
     for (let i = 0; i < 3; i++) {
@@ -337,19 +409,22 @@ function drawWolf(time) {
 function draw(time) {
   ctx.clearRect(0, 0, w, h);
   const height = ['playing', 'paused', 'finale'].includes(status) ? levitation.height : 0;
-  drawDreamSky(ctx, w, h, height, time, stars);
-  drawGrass(ctx, w, h, cameraHeight(height), levitation.impact, ['playing', 'paused', 'finale'].includes(status) ? .5 : w < 600 ? .70 : .77, time, reducedMotion.matches);
+  drawDreamSky(ctx, w, h, height, reducedMotion.matches ? 0 : time, stars, shop.equipped);
+  if (shop.equipped.location === 'meadow') drawGrass(ctx, w, h, cameraHeight(height), levitation.impact, ['playing', 'paused', 'finale'].includes(status) ? .5 : w < 600 ? .70 : .77, time, reducedMotion.matches);
+  else drawLocation(ctx,w,h,cameraHeight(height),time,shop.equipped.location,reducedMotion.matches);
   if (status !== 'finale' && status !== 'result') drawWolf(time);
   if (status === 'finale') drawFinale();
-  if (status === 'result') drawHunter(ctx, w * (w < 600 ? .78 : .77), h * .83, Math.min(w / 500, h / 650, 1.5), { bloody: true, look: -3 });
+  if (status === 'result') drawHunter(ctx, w * (w < 600 ? .78 : .77), h * .83, Math.min(w / 500, h / 650, 1.5), { bloody: true, look: -3, skin: shop.equipped.wolf });
   if (status === 'playing' || status === 'paused') {
     // The center gate flashes on exactly the event that changes the hidden total.
     ctx.strokeStyle = `rgba(196,224,191,${.08 + crossingGlow * .5})`; ctx.lineWidth = 1 + crossingGlow * 2;
     ctx.setLineDash([3, 7]);
-    ctx.beginPath(); ctx.moveTo(w * .5, h * .26); ctx.lineTo(w * .5, h * .43);
-    ctx.moveTo(w * .5, h * .57); ctx.lineTo(w * .5, h * .76); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(w * .5, h * .26); ctx.lineTo(w * .5, h * .52); ctx.stroke(); ctx.setLineDash([]);
     for (const orb of orbs) drawOrb(orb);
-    for (const orb of orbs) drawPerfectBubble(ctx, orb, w, h, sheepRadius(w), reducedMotion.matches);
+    const rect = $('count').getBoundingClientRect();
+    const box = { x: rect.x+rect.width/2, y: rect.y+rect.height/2, width: rect.width+32, height: rect.height+18, reduced: reducedMotion.matches };
+    drawCrit(ctx, { ...box, effect: shop.equipped.effect, ready: readyGlow });
+    for (const pop of critPops) drawCrit(ctx, { ...box, ...pop });
     for (const p of particles) {
       ctx.globalAlpha = (1 - p.age / p.life) * .7;
       ellipse(p.x * w, p.y * h, 2, 2, p.color);
@@ -390,7 +465,7 @@ function drawFinale() {
   const mouth = t < .65 ? 0 : t < 1.7 ? Math.sin(beat.phase * Math.PI) : Math.max(0, Math.sin((t-1.7)*24)) * .3;
   if(t < .16) drawWolf(visualTime);
   else drawHunter(ctx,x,y - Math.min(1,t/.65)*16,Math.min(w/490,h/650,1.1),{
-    mouth, lookUp: t >= .5, look: t < .35 ? -5 : t < .5 ? 5 : 0,
+    skin: shop.equipped.wolf, mouth, lookUp: t >= .5, look: t < .35 ? -5 : t < .5 ? 5 : 0,
     gulp: t > 1.75 ? Math.max(0,Math.sin((t-1.75)/.45*Math.PI)) : 0, bloody: t > .85,
   });
   if(t>.65 && t<1.7 && !reduced) {
@@ -408,19 +483,13 @@ function drawOrb(orb) {
   const color = colors[orb.op];
   // A larger, landscape-shaped silhouette reads clearly on small phone screens.
   const r = sheepRadius(w);
-  for (let i = 1; i < orb.trail.length; i++) {
-    ctx.globalAlpha = i / orb.trail.length * .13;
-    ctx.strokeStyle = color; ctx.lineWidth = r * .4 * i / orb.trail.length;
-    ctx.lineCap = 'round'; ctx.beginPath();
-    ctx.moveTo(orb.trail[i - 1].x * w, orb.trail[i - 1].y * h);
-    ctx.lineTo(orb.trail[i].x * w, orb.trail[i].y * h); ctx.stroke();
-  }
-  drawSheep(ctx, orb, orb.x * w, orb.y * h, r, color, reducedMotion.matches);
+  if (!reducedMotion.matches) drawTrail(ctx, orb.trail, shop.equipped.trail, w, h, r);
+  drawSheep(ctx, { ...orb, skin: shop.equipped.sheep }, orb.x * w, orb.y * h, r, color, reducedMotion.matches);
 }
 
 function frame(t) {
   const dt = Math.min(.1, (t - previous) / 1000); previous = t;
-  if (status !== 'paused') visualTime += dt;
+  if (!['paused','shop','collection'].includes(status)) visualTime += dt;
   if (status === 'playing') {
     accumulator += dt;
     while (accumulator >= FIXED_STEP && status === 'playing') { tick(FIXED_STEP); accumulator -= FIXED_STEP; }
@@ -432,6 +501,8 @@ function frame(t) {
     if (finaleTime > .65 && finaleTime < 1.7 && beat.index !== biteIndex) { biteIndex = beat.index; sounds.bite(); }
     if (finaleTime >= FINALE_DURATION) showResult();
   }
-  draw(visualTime); requestAnimationFrame(frame);
+  draw(visualTime);
+  if (status === 'shop') animateShop(t / 1000);
+  requestAnimationFrame(frame);
 }
 home(); requestAnimationFrame(frame);

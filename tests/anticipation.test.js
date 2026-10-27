@@ -68,7 +68,7 @@ test('red and double debut at the next 26-second wave each; waves themselves sta
 });
 test('first-entry emphasis animates once per type per run and honors reduced motion',()=>{
   const source=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
-  const block=source.slice(source.indexOf('      if (!revealed.has(orb.op))'),source.indexOf("      $('operation').style.color"));
+  const block=source.slice(source.indexOf('      if (!revealed.has(orb.op))'),source.indexOf("      observeAnticipation(orb, count);",source.indexOf('      if (!revealed.has(orb.op))')));
   const run=new Function('revealed','orb','type','elapsed','reducedMotion','$','displayOperation',`let cueUntil=0; ${block};return cueUntil;`);
   let animations=0;
   const nodes=Object.fromEntries(['encounter','double','halve'].map(id=>[id,{textContent:'',getAnimations:()=>[],animate(){animations++;}}]));

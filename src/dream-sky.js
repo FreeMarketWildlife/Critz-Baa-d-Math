@@ -68,12 +68,13 @@ function fullMoon(ctx, x, y, r) {
   }
   ctx.restore();
 }
-export function drawDreamSky(ctx, w, h, height, time, stars) {
+export function drawDreamSky(ctx, w, h, height, time, stars, cosmetics = {}) {
   const space = smooth((height - .6) / 2.8);
   const bg = ctx.createLinearGradient(0, 0, 0, h);
-  bg.addColorStop(0, mix([4, 9, 22], [3, 7, 18], space));
-  bg.addColorStop(.6, mix([10, 21, 38], [10, 18, 34], space));
-  bg.addColorStop(1, mix([18, 33, 43], [18, 31, 46], space));
+  const sky = {dawn:[[53,42,80],[142,103,144],[239,178,146]], sunset:[[52,29,66],[136,66,102],[230,146,103]], day:[[38,100,155],[94,166,202],[177,214,222]]}[cosmetics.sky];
+  bg.addColorStop(0, sky ? mix(sky[0],[3,7,18],space) : mix([4, 9, 22], [3, 7, 18], space));
+  bg.addColorStop(.6, sky ? mix(sky[1],[10,18,34],space) : mix([10, 21, 38], [10, 18, 34], space));
+  bg.addColorStop(1, sky ? mix(sky[2],[18,31,46],space) : mix([18, 33, 43], [18, 31, 46], space));
   ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
   for (const s of stars) {
     ctx.globalAlpha = .18 + (.5 + .5 * Math.sin(time * .18 + s.phase)) * .4;
@@ -93,7 +94,21 @@ export function drawDreamSky(ctx, w, h, height, time, stars) {
   ctx.beginPath(); ctx.moveTo(zx - 5, zy); ctx.lineTo(zx + 5, zy); ctx.moveTo(zx, zy - 6); ctx.lineTo(zx, zy + 6); ctx.stroke(); ctx.restore();
   // A fully illuminated Moon, Libriam's own sub-satellite, behind the dreamer.
   const mx = w * .69, my = h * .36 + skyShift * .35, mr = Math.min(w * .125, h * .115);
-  fullMoon(ctx, mx, my, mr);
+  if (!cosmetics.moon || cosmetics.moon === 'full') fullMoon(ctx, mx, my, mr);
+  else {
+    ctx.save();
+    if (cosmetics.moon === 'crescent') {
+      ctx.beginPath();ctx.arc(mx,my,mr,0,Math.PI*2);ctx.closePath();ctx.moveTo(mx+mr*1.37,my-mr*.22);ctx.arc(mx+mr*.46,my-mr*.22,mr*.91,0,Math.PI*2);ctx.closePath();ctx.clip('evenodd');
+    }
+    fullMoon(ctx,mx,my,mr);
+    const tint={rose:'#f490b788',blue:'#5abbff88',harvest:'#ffbe5788'}[cosmetics.moon];
+    if(tint){ctx.globalCompositeOperation='source-atop';oval(ctx,mx,my,mr,mr,tint);}
+    ctx.restore();
+  }
+  if(cosmetics.sky === 'aurora') {
+    ctx.save();ctx.globalAlpha=.18*(1-space*.7);ctx.lineWidth=h*.045;
+    for(let i=0;i<4;i++){ctx.strokeStyle=i%2?'#ab7ae6':'#71e7bb';ctx.beginPath();for(let x=0;x<=w;x+=12){const y=h*(.14+i*.045)+Math.sin(x/w*5+time*.09+i)*h*.08;x?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();}ctx.restore();
+  }
   // Broad, restrained moonlight across the clearing, not a theatrical spotlight.
   ctx.save(); ctx.globalAlpha = 1 - space * .8;
   ctx.save(); ctx.translate(mx, h * .73); ctx.scale(.8, 1.8);

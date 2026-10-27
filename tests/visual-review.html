@@ -2,5 +2,5 @@
 import {drawSheep} from '../src/sheep.js';
 import {FLOCK,displayOperation} from '../src/flock.js';
 const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d');
-function frame(time){ctx.clearRect(0,0,canvas.width,canvas.height);for(let i=0;i<FLOCK.length;i++){const s=FLOCK[i],x=125+i%4*250,y=110+Math.floor(i/4)*290;drawSheep(ctx,{op:s.id,vx:i%2?-1:1,counted:false,angle:Math.sin(time/3000)*.4,age:time/1000,crossed:false},x,y,45,s.color);ctx.textAlign='center';ctx.fillStyle='#c8dcd7';ctx.font='16px system-ui';ctx.fillText(`${s.name} · ${displayOperation(s.id)}`,x,y+90);ctx.fillStyle='#9aafbd';ctx.font='13px system-ui';ctx.fillText(`Perfect +${s.bonus}`,x,y+115)}requestAnimationFrame(frame)}requestAnimationFrame(frame);
+function frame(time){ctx.clearRect(0,0,canvas.width,canvas.height);for(let i=0;i<FLOCK.length;i++){const s=FLOCK[i],x=125+i%4*250,y=110+Math.floor(i/4)*290;drawSheep(ctx,{op:s.id,vx:i%2?-1:1,counted:false,angle:Math.sin(time/3000)*.4,age:time/1000,crossed:false},x,y,45,s.color);ctx.textAlign='center';ctx.fillStyle='#c8dcd7';ctx.font='16px system-ui';ctx.fillText(`${s.name} · ${displayOperation(s.id)}`,x,y+90);ctx.fillStyle='#9aafbd';ctx.font='13px system-ui';ctx.fillText(`Crit! +${s.bonus}`,x,y+115)}requestAnimationFrame(frame)}requestAnimationFrame(frame);
 </script></html>

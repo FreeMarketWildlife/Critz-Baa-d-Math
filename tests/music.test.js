@@ -23,7 +23,7 @@ test('perfect rewards ascend through C major across the octave independently of 
   for (let i = 0; i < 14; i++) {
     sounds.tap(-1); notes.length = 0; sounds.perfect(); pitches.push(notes[0][0]);
     assert.ok(notes[0][1] >= .7);
-    assert.deepEqual(notes.slice(1).map(n => n[0]), [pitches[i]/2,pitches[i]*2,pitches[i]*2]);
+    assert.deepEqual(notes.slice(1,4).map(n => n[0]), [pitches[i]/2,pitches[i]*2,pitches[i]*2]);
   }
   for(let i=1;i<pitches.length;i++) assert.ok(pitches[i]>pitches[i-1]);
   assert.ok(Math.abs(pitches[7]/pitches[0]-2)<1e-8);

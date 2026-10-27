@@ -79,7 +79,7 @@ Four cached layers of rolling hills move at different parallax speeds, so nearby
 
 ## Sheep celebrations and rich meadows
 
-There is no Ready indicator or central Perfect label. At a perfect center crossing, that sheep gets its own short-lived glowing “Perfect” text pop with a springy scale animation and sparkles, without a speech bubble or tail. It stays upright and travels beside the sheep, stays within the viewport, and fades after about a second. The existing perfect scoring and chime remain. `src/sheep-callout.js` owns this independent overlay without changing the shared sheep renderer.
+The counting area has no status, pace, count-label, operation, or reward text. Correct anticipation softly reveals a frame around the number. At a successful crossing it becomes a Crit: the frame pops and dissolves without a text callout. `src/crit.js` renders both the live effect and shop previews.
 
 The cached meadows now plant thousands of depth-sorted flowers across every hill in continuous carpets, with broad patches of rich blues and purples, white daisies and yellow cups. Six flower shapes each have several color shades and close petals catch faint moonlight. Density scales with viewport width; only the cached layers move during ordinary frames. Counting controls have dark backing to stay legible against the flowers. Dropping from levitation has no landing penalty; ordinary counting-error rage rules still apply.
 
@@ -95,14 +95,14 @@ Every operation's first appearance in each run waits for all airborne sheep to l
 
 ## Night exposure and perfect-note climb
 
-The sky, giant planet, and flower fields use a darker blue night exposure, with the Moon shifted slightly to the right. Perfect rewards are floating gold text with a quick pop and small sparkles, with no speech-bubble background or tail. Their chimes have their own ascending two-octave C-major phrase, so subtraction taps cannot lower the next perfect reward. The phrase repeats after two octaves to stay in a comfortable register. Taps keep their existing bounded C-major voicings.
+The sky, giant planet, and flower fields use a darker blue night exposure, with the Moon shifted slightly to the right. Crit rewards use the equipped counter-frame effect, with no text popup. Their chimes have their own ascending two-octave C-major phrase, so subtraction taps cannot lower the next perfect reward. The phrase repeats after two octaves to stay in a comfortable register. Taps keep their existing bounded C-major voicings.
 
 
 ## Expanded flock, achievements, and permanent space
 
 `src/flock.js` is the shared source for 22 personalities, colors, expressions, spins, arithmetic, and perfect bonuses (50–2,500). Additive weights dominate; large downward changes become rarer as totals grow, giving the running total a positive expected drift. Fractions only spawn at divisible totals. Backwards and signed multipliers/fractions require permanent space. Blank resets to zero; the separate Legendary Shadow ×0 is exceptionally rare, needs positive altitude and more than 180 seconds, and follows the complete fixed curriculum. Its first-encounter roll is 0.3% per eligible launch decision, never per physics tick.
 
-The Flock button opens the achievement collection from the menu, play, pause, or results. Opening during play pauses the run. Seen counts, perfect counts, and mastery stars persist in browser local storage on this device. Each discovered card lists its perfect bonus; a sheep’s floating perfect reward also shows its bonus. Discovery progression resets on replay while the collection persists.
+The Flock button opens the achievement collection from the menu, play, pause, or results. Opening during play pauses the run. Seen counts, perfect counts, and mastery stars persist in browser local storage on this device. Each discovered card lists its perfect bonus; Crit achievements list the difficulty bonus. Discovery progression resets on replay while the collection persists.
 
 Permanent orbit introduces the original **Starwake** synth soundtrack with wide suspended pads, syncopated triangle arpeggios, and a bass pulse. Music changes while preserving its clock and pause state. Distant stars, moon, and giant planet have almost imperceptible altitude parallax; closer wisps and occasional shooting stars establish motion. Space remains dangerous: counting mistakes can still wake the wolf and end the run.
 
@@ -115,3 +115,16 @@ Damage and loss use the distance to the union of the committed total and each vi
 First appearances of special sheep show a brief new-operation cue; ×2 and ÷2 also emphasize their independently unlocked button. Each type reveals once per run, resets on retry, and skips motion when reduced motion is enabled.
 
 Introduction waits changed from alternating two/three waves to one wave, retaining the 26-second wave duration, clear-sky debut requirement and eligibility gates. Red −1 weight increased modestly from 9 to 12; with only +1 and −1 available this changes its effective share from about 15.8% to 20% (the existing downward-change weighting remains).
+
+
+## Critz and the dream shop
+
+A correct count reached before the center and held through crossing earns a **Crit!** using the existing anticipation and overlap-lock rules. Each Crit keeps the existing 50–2,500 point difficulty bonus and also earns `ceil(bonus / 50)` spendable Critz (1–50). Currency is awarded once at the crossing and retained immediately, including when quitting a run. Late corrections do not earn Critz. Scores and currency are independent; buying cosmetics never spends score. Results show run Crits, earned Critz and the wallet.
+
+The Shop offers five animated, audible Crit previews: **Soft Bloom** (free), **Ripple** (35), **Stardust** (60), **Petal Drift** (80), and **Moon Halo** (100). Each outline fades or draws into view before the crossing, then expands gently and dissolves over 0.85 seconds. Reduced motion keeps opacity fades and removes scaling and drifting particles. Hear pop auditions a soft synthesized bubble under the existing ascending reward chime and enables sound if muted.
+
+Seven categories contain 33 cosmetics including their free originals: Crit effects; rainbow, fire, aurora and comet sheep trails; meadow, jungle, island, desert and alpine locations; wolf, hyena, lion and arctic fox guardians; sheep, ram, goat and cloud lamb skins; full, rose, blue, harvest and crescent moons; midnight, dawn, sunset, daydream and aurora skies. Operations, readable arithmetic colors and game difficulty stay the same. New landscapes retain the ascent camera and disappear below it; skies fade into deep space. Sheep skins retain the operation’s color except the deliberately pale-blue Cloud lamb, whose labels retain their original contrast.
+
+Fresh saves keep the original midnight meadow, full Moon, wolf and sheep, with **no trail** and free Soft Bloom. Buying equips an item immediately; owned items and originals can be re-equipped for free. Wallet, ownership and equipment use the separate `baad-shop-v1` local-storage save; existing flock achievements remain intact. Saves belong to this browser/device and have no account sync. Blocked storage supports session play and shopping but cannot persist it. Opening the shop during play pauses time and controls, and Back returns to the pause panel so play resumes deliberately.
+
+Validation: `npm test` checks arithmetic, music, results, purchase affordability, single charges, currency persistence, defaults, malformed saves and denied storage. `tests/crit-browser.cjs` checks actual shop purchases, reloads, all cosmetic renderers, early/late crossings, exactly-once rewards, pause/resume and results in desktop, emulated phone, landscape and reduced-motion Chrome. Run with Playwright on `NODE_PATH` and the dev server on port 4187. Screenshots go to ignored `artifacts/crits/`. This is browser emulation, not physical mobile-device testing.

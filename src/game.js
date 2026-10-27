@@ -3,13 +3,15 @@ import { FLOCK, BY_ID, createProgression, planEncounter, displayOperation } from
 import { bindCounting, countTime, encounterPreview } from './controls.js';
 import { readCollection, recordSheep, renderCollection } from './collection.js';
 import { waveInterval } from './pacing.js';
-import { drawCrit, drawTrail, EFFECT_COLORS } from './crit.js';
-import { readShop, saveShop, earnCrit, selectItem, CATALOG, CATEGORIES, guardianPalettes } from './shop.js';
+import { drawCrit, drawTrail } from './crit.js';
+import { readShop, earnCrit, guardianPalettes } from './shop.js';
+import { createShopView } from './shop-view.js';
+import { sheepScore, resultTally } from './results.js';
 import { drawLocation } from './locations.js';
 import { createLevitation, stepLevitation, cameraHeight } from './levitation.js';
 import { drawDreamSky, drawGrass } from './dream-sky.js';
 import { slowArithmetic } from './music.js';
-import { FINALE_DURATION, runStats, attackBeat, drawHunter } from './finale.js';
+import { FINALE_DURATION, attackBeat, drawHunter } from './finale.js';
 import { drawSheep } from './sheep.js';
 import { apply, tolerance, stepRage, countColor, observeAnticipation, isPerfectCrossing, calmForPerfect, countingError, creditCountedSheep } from './rules.js';
 import { DreamSounds } from './sound.js';
@@ -21,7 +23,7 @@ const colors = Object.fromEntries(FLOCK.map(s => [s.id, s.color]));
 let storage; try { storage = localStorage; } catch {}
 const collection = readCollection(storage);
 const shop = readShop(storage);
-let shopCategory = 'effect', shopReturn = 'menu', readyGlow = 0, critPops = [], runCritz = 0;
+let shopReturn = 'menu', readyGlow = 0, critPops = [], runCritz = 0;
 const stars = Array.from({ length: 130 }, () => ({
   x: Math.random(), y: Math.random() * .8, r: Math.random() * 1.4 + .3, phase: Math.random() * 6,
 }));
@@ -36,6 +38,8 @@ let revealed = new Set(), cueUntil = 0;
 let next = .45, grace = 0, orbs = [], particles = [], rings = [], lastSide = 1;
 const sounds = new DreamSounds();
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+let resultAge = 0, lastTallyBeat = -1, tallyComplete = false;
+const shopView = createShopView({shop,storage,sounds,reducedMotion,soundLabel});
 let previous = performance.now();
 let accumulator = 0, visualTime = 0, countKick = 0, crossingGlow = 0, tapGlow = 0, tapSide = 1;
 
@@ -82,7 +86,7 @@ function update() {
   $('count').style.color = countColor(count, target);
   $('count').style.transform = `scale(${1 + countKick * .08})`;
   $('sheep').textContent = n;
-  $('runScore').textContent = (n * 100 + perfectScore + Math.floor(elapsed) * 10).toLocaleString();
+  $('runScore').textContent = sheepScore(n, perfectScore).toLocaleString();
   $('danger').style.opacity = rage * (.65 + .2 * Math.sin(visualTime * (4 + rage * 5)));
   document.documentElement.style.setProperty('--tap-left', tapSide < 0 ? tapGlow * .1 : 0);
   document.documentElement.style.setProperty('--tap-right', tapSide > 0 ? tapGlow * .1 : 0);
@@ -96,13 +100,26 @@ function finish() {
 }
 function showResult() {
   status = 'result'; screens('result');
-  const stats = runStats({ sheep: n, perfect: perfectHits, peak, seconds: elapsed, perfectScore });
-  $('stars').textContent = stats.score.toLocaleString();
+  resultAge = 0; lastTallyBeat = -1; tallyComplete = false;
+  renderResultTally();
   $('resultCount').textContent = count.toLocaleString();
   $('resultSheep').textContent = target.toLocaleString();
   $('resultCritz').textContent = `${perfectHits} Crits · +${runCritz} Critz · Wallet ${shop.balance.toLocaleString()}`;
   $('again').focus({ preventScroll: true });
 }
+
+function renderResultTally() {
+  const tally = resultTally(sheepScore(n,perfectScore),elapsed,resultAge,reducedMotion.matches);
+  $('stars').textContent = tally.score.toLocaleString();
+  $('stars').disabled = tally.done;
+  $('timeBonus').textContent = `+${tally.remaining.toLocaleString()}`;
+  $('bonusProgress').style.transform = `scaleX(${tally.bonus ? 1-tally.remaining/tally.bonus : 1})`;
+  $('result').classList.toggle('tally-done',tally.done);
+  const beat=Math.floor(resultAge*11);
+  if(!reducedMotion.matches && resultAge>.45 && !tally.done && beat!==lastTallyBeat){sounds.tally(beat);lastTallyBeat=beat;}
+  if(tally.done&&!tallyComplete){tallyComplete=true;if(tally.bonus>0){sounds.tallyFinish();if(!reducedMotion.matches)$('stars').animate([{transform:'scale(1)'},{transform:'scale(1.065)',offset:.4},{transform:'scale(1)'}],{duration:500});}}
+}
+$('stars').onclick=()=>{if(status==='result'){resultAge=3;renderResultTally();}};
 
 function tap(delta, event) {
   if (status !== 'playing') return;
@@ -157,72 +174,12 @@ function openCollection() {
   collectionReturn = status;
   if (status === 'playing') { pause(); collectionReturn = 'paused'; }
   controls.stop(); status = 'collection'; renderCollection($('flockGrid'), collection);
-  const entries = Object.values(collection);
-  $('collectionSummary').textContent = `${entries.filter(e => e.seen).length}/${FLOCK.length} seen · ${entries.filter(e => e.perfect).length}/${FLOCK.length} Crit mastered`;
   screens('collection'); $('closeCollection').focus();
 }
 $('collectionButton').onclick = openCollection;
 $('closeCollection').onclick = () => { status = collectionReturn; screens(status === 'result' ? 'result' : status === 'paused' ? 'paused' : 'menu'); $('collectionButton').focus(); };
-function renderShop() {
-  $('wallet').textContent = shop.balance.toLocaleString();
-  $('shopHelp').textContent = `This run: ${runCritz} Critz · Every Crit! earns more`;
-  $('shopTabs').replaceChildren();
-  for (const [category, label] of Object.entries(CATEGORIES)) {
-    const button = document.createElement('button'); button.textContent = label;
-    button.setAttribute('aria-pressed', String(category === shopCategory));
-    button.onclick = () => { shopCategory = category; renderShop(); }; $('shopTabs').append(button);
-  }
-  $('shopGrid').replaceChildren();
-  for (const entry of CATALOG.filter(i => i.category === shopCategory)) {
-    const card = document.createElement('article'); card.className = 'shop-card';
-    const preview = document.createElement('canvas'); preview.width = 280; preview.height = 150; preview.dataset.item = entry.id;
-    preview.setAttribute('aria-label', `${entry.name} preview`); preview.setAttribute('role','img');
-    const name = document.createElement('h3'); name.textContent = entry.name;
-    const description = document.createElement('p'); description.textContent = entry.description;
-    const button = document.createElement('button');
-    const owned = shop.owned.includes(`${entry.category}:${entry.id}`), equipped = shop.equipped[entry.category] === entry.id;
-    button.textContent = equipped ? 'Equipped' : owned ? 'Equip' : `Buy · ${entry.price} Critz`;
-    button.disabled = equipped || !owned && shop.balance < entry.price;
-    card.classList.toggle('equipped', equipped);
-    button.onclick = () => {
-      const bought = !owned;
-      if (selectItem(shop,entry.category,entry.id,storage)) {
-        $('shopNotice').textContent = `${entry.name} ${bought ? 'purchased and equipped' : 'equipped'}.`;
-        if (!saveShop(shop,storage)) $('shopNotice').textContent += ' Storage unavailable; changes last for this session.';
-        renderShop();
-        $('shopGrid').children[CATALOG.filter(i=>i.category===shopCategory).indexOf(entry)].querySelector('button:last-child').focus();
-      }
-    };
-    if (entry.category === 'effect') {
-      const hear = document.createElement('button'); hear.textContent = 'Hear pop'; hear.className = 'hear-pop';
-      hear.onclick = () => { if (!sounds.enabled) { sounds.toggle(); soundLabel(); } sounds.unlock(); sounds.perfect(entry.id); }; card.append(preview,name,description,hear,button);
-    } else card.append(preview,name,description,button); $('shopGrid').append(card);
-  }
-  animateShop(performance.now()/1000);
-}
-function animateShop(time) {
-  const phase = reducedMotion.matches ? .9 : time % 3;
-  for (const c of $('shopGrid').querySelectorAll('canvas')) {
-    const p = c.getContext('2d'), id = c.dataset.item;
-    p.clearRect(0,0,280,150);p.fillStyle='#111f32';p.fillRect(0,0,280,150);
-    if (shopCategory === 'effect') {
-      p.fillStyle=EFFECT_COLORS[id];p.font="48px 'Space Grotesk',sans-serif";p.textAlign='center';p.fillText('22',140,92);
-      drawCrit(p,{x:140,y:75,width:90,height:70,effect:id,ready:phase<1.6?Math.min(1,phase*1.5):0,age:phase>=1.6?phase-1.6:-1,reduced:reducedMotion.matches});
-    } else if(shopCategory==='sheep'||shopCategory==='trail') {
-      const trail=Array.from({length:20},(_,i)=>({x:.05+i*.027,y:.6+Math.sin(i*.12+time)*.08}));
-      if(shopCategory==='trail')drawTrail(p,trail,id,280,150,28);
-      drawSheep(p,{op:'+1',vx:1,angle:0,age:reducedMotion.matches?0:time,skin:shopCategory==='sheep'?id:shop.equipped.sheep},180,78,28,'#f2efdf',reducedMotion.matches);
-    } else if(shopCategory==='wolf') drawHunter(p,140,76,.7,{skin:id});
-    else {
-      const look={...shop.equipped,[shopCategory]:id};
-      drawDreamSky(p,280,150,0,reducedMotion.matches?0:time,[],look);
-      if(shopCategory==='location') {
-        if(id==='meadow') {p.fillStyle='#506c62';p.beginPath();p.ellipse(140,160,190,45,0,0,Math.PI*2);p.fill();for(let i=0;i<55;i++){p.fillStyle=['#b2a1dd','#e9d89c','#a3c7ed'][i%3];p.fillRect(i*37%280,120+i*13%30,2,3);}}
-        else drawLocation(p,280,150,0,time,id,reducedMotion.matches);
-      }
-    }
-  }
-}
+function renderShop() { shopView.render(); }
+function animateShop(time) { shopView.animate(time); }
 $('shopButton').onclick = () => {
   if (['finale','shop','collection'].includes(status)) return;
   shopReturn = status;
@@ -501,6 +458,7 @@ function frame(t) {
     if (finaleTime > .65 && finaleTime < 1.7 && beat.index !== biteIndex) { biteIndex = beat.index; sounds.bite(); }
     if (finaleTime >= FINALE_DURATION) showResult();
   }
+  if (status === 'result') { resultAge += dt; renderResultTally(); }
   draw(visualTime);
   if (status === 'shop') animateShop(t / 1000);
   requestAnimationFrame(frame);

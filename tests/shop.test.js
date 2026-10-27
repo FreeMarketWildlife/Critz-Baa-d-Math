@@ -36,3 +36,13 @@ test('denied storage does not prevent earning, buying, or equipping this session
   const storage={getItem(){throw Error();},setItem(){throw Error();}};const state=readShop(storage);
   earnCrit(state,2500,storage);assert.ok(selectItem(state,'trail','rainbow',storage));assert.equal(state.balance,5);
 });
+
+test('legacy moon colors and Crescent purchases migrate without changing wallet or charging again',()=>{
+  const storage=memory();
+  storage.setItem('',JSON.stringify({balance:321,earned:500,owned:['moon:rose','moon:crescent'],equipped:{moon:'crescent'}}));
+  let state=readShop(storage);assert.equal(state.balance,321);assert.equal(state.earned,500);
+  assert.equal(state.equipped.moon,'full');assert.equal(state.equipped.phase,'waning-crescent');
+  assert.ok(selectItem(state,'moon','rose',storage));assert.equal(state.balance,321);assert.equal(state.equipped.phase,'waning-crescent');
+  assert.ok(selectItem(state,'phase','full',storage));assert.ok(selectItem(state,'phase','waning-crescent',storage));
+  state=readShop(storage);assert.equal(state.equipped.moon,'rose');assert.equal(state.equipped.phase,'waning-crescent');assert.equal(state.balance,321);
+});

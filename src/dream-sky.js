@@ -68,6 +68,30 @@ function fullMoon(ctx, x, y, r) {
   }
   ctx.restore();
 }
+// Orthographic lunar terminators: colors and phases compose independently.
+export function drawMoon(ctx, x, y, r, { moon = 'full', phase = 'full' } = {}) {
+  const tint = {rose:'#f490b788',blue:'#5abbff88',harvest:'#ffbe5788'}[moon];
+  ctx.save();
+  if (phase !== 'full') {
+    halo(ctx,x,y,r*1.7,'#b8d6e51b');
+    oval(ctx,x,y,r,r,'#182536');
+    if (phase === 'new') {
+      ctx.strokeStyle='#8396ae55';ctx.lineWidth=Math.max(.6,r*.012);ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();ctx.restore();return;
+    }
+    const k = phase.includes('crescent') ? -.65 : phase.includes('gibbous') ? .65 : 0;
+    const side = phase.startsWith('waning') || phase === 'last-quarter' ? -1 : 1;
+    ctx.beginPath();
+    for(let i=0;i<=64;i++) {
+      const yy=-r+2*r*i/64, xx=Math.sqrt(Math.max(0,r*r-yy*yy));
+      if(i===0)ctx.moveTo(x+side*xx,y+yy);else ctx.lineTo(x+side*xx,y+yy);
+    }
+    for(let i=64;i>=0;i--) {const yy=-r+2*r*i/64;ctx.lineTo(x-side*k*Math.sqrt(Math.max(0,r*r-yy*yy)),y+yy);}
+    ctx.closePath();ctx.clip();
+  }
+  fullMoon(ctx,x,y,r);
+  if(tint){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.clip();oval(ctx,x,y,r,r,tint);}
+  ctx.restore();
+}
 export function drawDreamSky(ctx, w, h, height, time, stars, cosmetics = {}) {
   const space = smooth((height - .6) / 2.8);
   const bg = ctx.createLinearGradient(0, 0, 0, h);
@@ -94,17 +118,7 @@ export function drawDreamSky(ctx, w, h, height, time, stars, cosmetics = {}) {
   ctx.beginPath(); ctx.moveTo(zx - 5, zy); ctx.lineTo(zx + 5, zy); ctx.moveTo(zx, zy - 6); ctx.lineTo(zx, zy + 6); ctx.stroke(); ctx.restore();
   // A fully illuminated Moon, Libriam's own sub-satellite, behind the dreamer.
   const mx = w * .69, my = h * .36 + skyShift * .35, mr = Math.min(w * .125, h * .115);
-  if (!cosmetics.moon || cosmetics.moon === 'full') fullMoon(ctx, mx, my, mr);
-  else {
-    ctx.save();
-    if (cosmetics.moon === 'crescent') {
-      ctx.beginPath();ctx.arc(mx,my,mr,0,Math.PI*2);ctx.closePath();ctx.moveTo(mx+mr*1.37,my-mr*.22);ctx.arc(mx+mr*.46,my-mr*.22,mr*.91,0,Math.PI*2);ctx.closePath();ctx.clip('evenodd');
-    }
-    fullMoon(ctx,mx,my,mr);
-    const tint={rose:'#f490b788',blue:'#5abbff88',harvest:'#ffbe5788'}[cosmetics.moon];
-    if(tint){ctx.globalCompositeOperation='source-atop';oval(ctx,mx,my,mr,mr,tint);}
-    ctx.restore();
-  }
+  drawMoon(ctx, mx, my, mr, cosmetics);
   if(cosmetics.sky === 'aurora') {
     ctx.save();ctx.globalAlpha=.18*(1-space*.7);ctx.lineWidth=h*.045;
     for(let i=0;i<4;i++){ctx.strokeStyle=i%2?'#ab7ae6':'#71e7bb';ctx.beginPath();for(let x=0;x<=w;x+=12){const y=h*(.14+i*.045)+Math.sin(x/w*5+time*.09+i)*h*.08;x?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();}ctx.restore();

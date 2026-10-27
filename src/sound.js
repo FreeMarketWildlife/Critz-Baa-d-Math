@@ -100,6 +100,14 @@ export class DreamSounds {
     this.note(pitch,.16,0,'sine',.12,90);
     this.note(pitch*1.5,.1,.015,'sine',.025,180);
   }
+  shopSelect() { this.unlock(); this.note(340,.06,0,'sine',.025,280); }
+  purchase(unlocked = true) {
+    this.unlock();
+    this.note(392,.22,0,'sine',.08);this.note(587.33,.35,.07,'sine',.065);
+    if(unlocked)this.note(783.99,.5,.14,'sine',.05);
+  }
+  tally(beat) { this.note(330+(beat%4)*27.5,.065,0,'sine',.025); }
+  tallyFinish() { this.note(523.25,.4,0,'sine',.08);this.note(783.99,.6,.06,'sine',.05); }
   updateMusic(focused, height = 0, space = false) {
     if (!this.inDream) return;
     if (this.music) { this.music.setSpace(space); this.music.update(focused); }

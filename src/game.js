@@ -1,3 +1,4 @@
+import { drawPerfectBubble } from './sheep-callout.js';
 import { commitCrossing, transformCount } from './counting.js';
 import { FLOCK, BY_ID, createProgression, planEncounter, displayOperation } from './flock.js';
 import { bindCounting, countTime, encounterPreview } from './controls.js';
@@ -23,7 +24,7 @@ const colors = Object.fromEntries(FLOCK.map(s => [s.id, s.color]));
 let storage; try { storage = localStorage; } catch {}
 const collection = readCollection(storage);
 const shop = readShop(storage);
-let shopReturn = 'menu', readyGlow = 0, critPops = [], runCritz = 0;
+let shopReturn = 'menu', readyGlow = 0, runCritz = 0;
 const stars = Array.from({ length: 130 }, () => ({
   x: Math.random(), y: Math.random() * .8, r: Math.random() * 1.4 + .3, phase: Math.random() * 6,
 }));
@@ -52,7 +53,6 @@ addEventListener('resize', resize); resize();
 
 function screens(id) {
   for (const name of ['menu', 'play', 'result', 'paused', 'collection', 'shop']) $(name).hidden = name !== id;
-  $('footer').hidden = id === 'play';
   $('pause').disabled = id !== 'play';
   $('shopButton').disabled = id === 'finale' || id === 'shop' || id === 'collection';
   $('collectionButton').disabled = id === 'finale' || id === 'collection' || id === 'shop';
@@ -62,7 +62,7 @@ function screens(id) {
 function begin(m) {
   mode = 'endless'; m = mode; status = 'playing';
   controls.stop();
-  readyGlow = 0; critPops = []; runCritz = 0;
+  readyGlow = 0; runCritz = 0;
   $('double').hidden = $('halve').hidden = true;
   peak = 0; finaleTime = 0; victims = []; biteIndex = -1;
   count = target = plannedTarget = n = launched = elapsed = rage = 0;
@@ -73,19 +73,15 @@ function begin(m) {
   next = .45; grace = 0; accumulator = 0; orbs = []; particles = []; rings = [];
   $('encounter').textContent = '';
   countKick = crossingGlow = tapGlow = 0;
-  $('modeLabel').textContent = 'TIME SURVIVED';
   sounds.start();
   screens('play'); update();
 }
 
 function nextSheep() { return orbs.findLast(orb => orb.entered && !orb.crossed); }
 function update() {
-  const seconds = Math.floor(elapsed);
-  $('time').textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   $('count').textContent = count;
   $('count').style.color = countColor(count, target);
   $('count').style.transform = `scale(${1 + countKick * .08})`;
-  $('sheep').textContent = n;
   $('runScore').textContent = sheepScore(n, perfectScore).toLocaleString();
   $('danger').style.opacity = rage * (.65 + .2 * Math.sin(visualTime * (4 + rage * 5)));
   document.documentElement.style.setProperty('--tap-left', tapSide < 0 ? tapGlow * .1 : 0);
@@ -253,7 +249,6 @@ function tick(dt) {
         recordSheep(collection, orb.op, true, storage);
         rage = calmForPerfect(rage); sounds.perfect(shop.equipped.effect);
         runCritz += earnCrit(shop, orb.bonus, storage);
-        critPops.push({ age: 0, effect: shop.equipped.effect });
       }
       observeAnticipation(nextSheep(), count);
       n++; crossingGlow = 1;
@@ -268,8 +263,6 @@ function tick(dt) {
   // Fade in only while a visible incoming sheep has an eligible held count.
   const ready = orbs.some(o => o.entered && !o.crossed && (o.perfectLocked || o.readyBeforeCenter && count === o.result));
   readyGlow += ((ready ? 1 : 0) - readyGlow) * (1 - Math.exp(-dt * (ready ? 7 : 12)));
-  for (const pop of critPops) pop.age += dt;
-  critPops = critPops.filter(pop => pop.age < .85);
   creditCountedSheep(orbs, count);
   orbs = orbs.filter(orb => !flightIsGone(orb));
   for (const p of particles) { p.age += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += .12 * dt; }
@@ -378,10 +371,10 @@ function draw(time) {
     ctx.setLineDash([3, 7]);
     ctx.beginPath(); ctx.moveTo(w * .5, h * .26); ctx.lineTo(w * .5, h * .52); ctx.stroke(); ctx.setLineDash([]);
     for (const orb of orbs) drawOrb(orb);
+    for (const orb of orbs) drawPerfectBubble(ctx, orb, w, h, sheepRadius(w), reducedMotion.matches);
     const rect = $('count').getBoundingClientRect();
     const box = { x: rect.x+rect.width/2, y: rect.y+rect.height/2, width: rect.width+32, height: rect.height+18, reduced: reducedMotion.matches };
     drawCrit(ctx, { ...box, effect: shop.equipped.effect, ready: readyGlow });
-    for (const pop of critPops) drawCrit(ctx, { ...box, ...pop });
     for (const p of particles) {
       ctx.globalAlpha = (1 - p.age / p.life) * .7;
       ellipse(p.x * w, p.y * h, 2, 2, p.color);
@@ -431,8 +424,6 @@ function drawFinale() {
       ellipse(x+Math.cos(angle)*dist,y-30+Math.sin(angle)*dist+beat.phase*25,2+i%3,3+i%4,i%3?'#aa294c':'#eee8d6');
     }
   }
-  ctx.fillStyle='#edc7ba';ctx.textAlign='center';ctx.font="600 15px 'Space Grotesk',sans-serif";
-  ctx.fillText(t < .65 ? '…oh, no.' : t < 1.7 ? 'SWEET DREAMS.' : 'GULP.',w*.5,h*.25);
   ctx.restore();
 }
 

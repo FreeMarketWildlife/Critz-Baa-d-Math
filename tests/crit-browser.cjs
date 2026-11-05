@@ -10,7 +10,7 @@ const assert=require('node:assert/strict');const fs=require('node:fs');
   await page.addInitScript(()=>{requestAnimationFrame=()=>0;localStorage.setItem('baad-sound','off');});
   await page.route('**/src/game.js',async route=>{const response=await route.fetch();await route.fulfill({response,body:await response.text()+`\nimport {CATALOG,DEFAULTS,selectItem} from '/src/shop.js';
    window.qa={
-    state:()=>({balance:shop.balance,earned:shop.earned,equipped:{...shop.equipped},status,count,target,elapsed,hits:perfectHits,bonus:perfectScore,runCritz,readyGlow,pops:critPops.length}),
+    state:()=>({balance:shop.balance,earned:shop.earned,equipped:{...shop.equipped},status,count,target,elapsed,hits:perfectHits,bonus:perfectScore,runCritz,readyGlow,pops:orbs.filter(orb=>orb.perfectAt!==undefined).length}),
     run(seconds,auto=true){let end=elapsed+seconds;while(elapsed<end&&status==='playing'){if(auto){const orb=nextSheep();if(orb)count=orb.result;}tick(FIXED_STEP);}update();draw(0);},
     cross(late=false){begin('endless');while(!nextSheep())tick(FIXED_STEP);const orb=nextSheep();if(!late)count=orb.result;while(!orb.crossed)tick(FIXED_STEP);if(late)count=orb.result;update();draw(0);},
     prep(){begin('endless');while(!nextSheep())tick(FIXED_STEP);count=nextSheep().result;for(let i=0;i<50;i++)tick(FIXED_STEP);update();draw(0);},
